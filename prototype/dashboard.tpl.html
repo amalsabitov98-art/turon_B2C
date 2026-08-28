@@ -1,0 +1,766 @@
+<title>Пульт продаж Turon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  /* Тёмная тема выбрана намеренно: это прототип продукта, у которого
+     утверждён тёмный интерфейс. Все цвета заданы явно. */
+  :root {
+    --bg:#0A0B09; --surface:#141613; --raised:#1C1F1A; --raised2:#22261D;
+    --border:#272B23; --border-lt:#343A2E;
+    --text:#F4F6F0; --muted:#969C8C; --dim:#6E7466;
+    --accent:#BEF264; --accent-dp:#A3E635;
+    --pos:#4ADE80; --neg:#F87171; --warn:#FBBF24;
+    /* Последовательная шкала одного тона: больше — светлее.
+       Все ступени проверены на контраст к поверхности (≥3:1). */
+    --r1:#5A6B31; --r2:#75903B; --r3:#93B446; --r4:#AFD855; --r5:#C8F76E;
+    --display:"Unbounded","Golos Text",system-ui,sans-serif;
+    --body:"Golos Text",system-ui,-apple-system,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:var(--body);
+         font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1340px; margin:0 auto; padding:0 24px 120px; }
+
+  /* ---------- шапка ---------- */
+  .top { position:sticky; top:0; z-index:40; background:rgba(10,11,9,.93);
+         backdrop-filter:blur(12px); border-bottom:1px solid var(--border);
+         margin:0 0 26px; padding:14px 24px; }
+  .top-in { max-width:1340px; margin:0 auto; display:flex; align-items:center;
+            gap:16px 20px; flex-wrap:wrap; }
+  .brand { font-family:var(--display); font-weight:600; font-size:15px;
+           letter-spacing:-.01em; display:flex; align-items:center; gap:9px; }
+  .brand i { width:9px; height:9px; border-radius:50%; background:var(--accent); display:block; }
+  .brand small { font-family:var(--mono); font-weight:400; font-size:10.5px;
+                 letter-spacing:.12em; text-transform:uppercase; color:var(--dim); }
+  .spacer { flex:1 1 auto; }
+
+  .seg { display:inline-flex; background:var(--surface); border:1px solid var(--border);
+         border-radius:10px; padding:3px; gap:2px; min-width:0; max-width:100%;
+         overflow-x:auto; scrollbar-width:none; }
+  .seg::-webkit-scrollbar { display:none; }
+  .seg button { font:inherit; font-size:13px; color:var(--muted); background:none;
+                border:0; padding:5px 11px; border-radius:7px; cursor:pointer;
+                white-space:nowrap; transition:background .14s,color .14s; }
+  .seg button:hover { color:var(--text); background:var(--raised); }
+  .seg button[aria-pressed="true"] { background:var(--accent); color:#12160B; font-weight:600; }
+  .seg button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+  .ctl-lbl { font-family:var(--mono); font-size:10.5px; letter-spacing:.11em;
+             text-transform:uppercase; color:var(--dim); margin-right:8px; }
+  .ctl { display:flex; align-items:center; min-width:0; max-width:100%; }
+
+  .rate-box { display:flex; align-items:center; gap:6px; background:var(--surface);
+              border:1px solid var(--border); border-radius:10px; padding:5px 10px; }
+  .rate-box input { width:76px; background:none; border:0; color:var(--text);
+                    font-family:var(--mono); font-size:12.5px; text-align:right; }
+  .rate-box input:focus { outline:none; color:var(--accent); }
+  .rate-box span { font-family:var(--mono); font-size:11px; color:var(--dim); }
+
+  .toggle { display:flex; align-items:center; gap:8px; font-size:12.5px;
+            color:var(--muted); cursor:pointer; user-select:none; }
+  .toggle input { appearance:none; width:34px; height:19px; border-radius:10px;
+                  background:var(--raised2); border:1px solid var(--border-lt);
+                  position:relative; cursor:pointer; transition:background .16s; }
+  .toggle input::after { content:""; position:absolute; top:2px; left:2px; width:13px;
+                         height:13px; border-radius:50%; background:var(--dim);
+                         transition:transform .16s,background .16s; }
+  .toggle input:checked { background:rgba(190,242,100,.22); border-color:var(--accent-dp); }
+  .toggle input:checked::after { transform:translateX(15px); background:var(--accent); }
+  .toggle input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+  /* ---------- сетка ---------- */
+  h2.sec { font-family:var(--display); font-weight:600; font-size:17px;
+           letter-spacing:-.015em; margin:38px 0 4px; }
+  .sec-note { font-size:13px; color:var(--dim); margin:0 0 16px; max-width:74ch; }
+
+  .grid { display:grid; gap:14px; }
+  .g4 { grid-template-columns:repeat(auto-fit,minmax(196px,1fr)); }
+  .g2 { grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); }
+
+  .card { background:var(--surface); border:1px solid var(--border);
+          border-radius:16px; padding:18px 20px 20px; min-width:0; }
+  .card-h { display:flex; justify-content:space-between; align-items:baseline;
+            gap:12px; margin-bottom:14px; }
+  .card-t { font-weight:600; font-size:14.5px; }
+  .card-s { font-family:var(--mono); font-size:10.5px; letter-spacing:.09em;
+            text-transform:uppercase; color:var(--dim); }
+
+  /* ---------- KPI ---------- */
+  .kpi .k-l { font-size:13px; color:var(--muted); margin-bottom:9px; }
+  .kpi .k-v { font-family:var(--display); font-weight:500; font-size:29px;
+              letter-spacing:-.03em; line-height:1.05; font-variant-numeric:tabular-nums; }
+  .kpi .k-s { margin-top:8px; font-size:12.5px; color:var(--dim);
+              font-variant-numeric:tabular-nums; }
+  .kpi.lead { background:linear-gradient(152deg,rgba(190,242,100,.15),rgba(190,242,100,.03) 64%);
+              border-color:rgba(190,242,100,.3); }
+  .kpi.lead .k-v { color:var(--accent); }
+  .up { color:var(--pos); } .down { color:var(--neg); }
+
+  /* ---------- таблицы ---------- */
+  .tw { overflow-x:auto; border:1px solid var(--border); border-radius:16px;
+        background:var(--surface); }
+  table { border-collapse:collapse; width:100%; font-size:13.5px;
+          font-variant-numeric:tabular-nums; }
+  th { text-align:left; font-family:var(--mono); font-weight:400; font-size:10.5px;
+       letter-spacing:.08em; text-transform:uppercase; color:var(--dim);
+       padding:12px 14px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  th.s { cursor:pointer; user-select:none; }
+  th.s:hover { color:var(--muted); }
+  th.s[data-on="1"] { color:var(--accent); }
+  td { padding:11px 14px; border-bottom:1px solid var(--border); color:var(--muted);
+       white-space:nowrap; }
+  tbody tr:last-child td { border-bottom:none; }
+  tbody tr.click { cursor:pointer; }
+  tbody tr:hover td { background:var(--raised); }
+  td.name { color:var(--text); font-weight:500; }
+  .num { text-align:right; }
+  .barcell { position:relative; min-width:132px; }
+  .barcell .bg { position:absolute; left:14px; right:14px; bottom:7px; height:3px;
+                 border-radius:2px; background:var(--border-lt); }
+  .barcell .fg { position:absolute; left:14px; bottom:7px; height:3px;
+                 border-radius:2px; background:var(--accent); }
+
+  /* ---------- чарты ---------- */
+  /* Столбцы построены на HTML, а не на SVG: масштабирование svg
+     с preserveAspectRatio="none" растягивает подписи по горизонтали. */
+  .cols { display:flex; align-items:flex-end; gap:10px; height:186px;
+          position:relative; padding-top:22px; }
+  .cols .gl { position:absolute; left:0; right:0; height:1px;
+              background:var(--border); pointer-events:none; }
+  .col { flex:1 1 0; display:flex; flex-direction:column; justify-content:flex-end;
+         align-items:center; height:100%; cursor:pointer; min-width:0;
+         position:relative; z-index:1; }
+  .col .cv { font-family:var(--mono); font-size:11px; color:var(--muted);
+             margin-bottom:6px; white-space:nowrap; }
+  .col .cb { width:100%; max-width:110px; border-radius:6px 6px 3px 3px;
+             transition:filter .14s; }
+  .col:hover .cb { filter:brightness(1.18); }
+  .col .cl { font-family:var(--mono); font-size:10.5px; color:var(--dim);
+             margin-top:9px; }
+
+  .mini { display:flex; align-items:flex-end; gap:5px; height:54px; }
+  .mini .mb2 { flex:1 1 0; border-radius:4px 4px 2px 2px; cursor:pointer;
+               transition:filter .14s; min-height:2px; }
+  .mini .mb2:hover { filter:brightness(1.2); }
+
+  .rank { display:flex; flex-direction:column; gap:9px; }
+  .rrow { display:grid; grid-template-columns:minmax(112px,176px) 1fr minmax(74px,auto);
+          gap:12px; align-items:center; font-size:13px; }
+  .rrow .rn { color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rrow .rt { height:20px; border-radius:5px; background:var(--raised2); overflow:hidden; }
+  .rrow .rt i { display:block; height:100%; border-radius:5px; }
+  .rrow .rv { font-family:var(--mono); font-size:12px; color:var(--muted); text-align:right; }
+  .rrow:hover .rn { color:var(--accent); }
+
+  .sm { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
+  .smc { background:var(--raised); border:1px solid var(--border); border-radius:12px;
+         padding:12px 13px 10px; }
+  .smc .smn { font-size:13px; font-weight:500; margin-bottom:2px; }
+  .smc .smv { font-family:var(--mono); font-size:11px; color:var(--dim); margin-bottom:9px; }
+
+  /* ---------- внимание ---------- */
+  .att { display:flex; flex-direction:column; gap:0; }
+  .att-i { display:grid; grid-template-columns:auto 1fr auto; gap:12px;
+           align-items:center; padding:11px 0; border-bottom:1px solid var(--border); }
+  .att-i:last-child { border-bottom:none; }
+  .att-i .ic { width:26px; height:26px; border-radius:8px; display:grid;
+               place-items:center; font-size:13px; font-weight:700; }
+  .ic.r { background:rgba(248,113,113,.14); color:var(--neg); }
+  .ic.w { background:rgba(251,191,36,.14); color:var(--warn); }
+  .ic.g { background:rgba(190,242,100,.14); color:var(--accent); }
+  .att-i .tx { font-size:13.5px; min-width:0; }
+  .att-i .tx b { color:var(--text); font-weight:500; }
+  .att-i .tx s { display:block; text-decoration:none; font-size:12px; color:var(--dim); }
+  .att-i .amt { font-family:var(--mono); font-size:13px; }
+
+  .empty { color:var(--dim); font-size:13px; padding:14px 0; }
+
+  /* ---------- плашки ---------- */
+  .flag { display:flex; gap:12px; align-items:flex-start; border-radius:14px;
+          padding:14px 16px; font-size:13.5px; margin:16px 0 0; }
+  .flag.warn { background:rgba(251,191,36,.07); border:1px solid rgba(251,191,36,.24); }
+  .flag.info { background:rgba(190,242,100,.06); border:1px solid rgba(190,242,100,.2); }
+  .flag b { color:var(--text); }
+  .flag .fi { font-family:var(--mono); font-size:11px; letter-spacing:.08em;
+              text-transform:uppercase; flex:0 0 auto; padding-top:2px; }
+  .flag.warn .fi { color:var(--warn); }
+  .flag.info .fi { color:var(--accent-dp); }
+  .flag ul { margin:7px 0 0; padding-left:18px; color:var(--muted); }
+  .flag li { margin-bottom:3px; }
+
+  /* ---------- подсказка ---------- */
+  #tip { position:fixed; z-index:90; pointer-events:none; opacity:0;
+         transition:opacity .12s; background:var(--raised2);
+         border:1px solid var(--border-lt); border-radius:10px; padding:9px 12px;
+         font-size:12.5px; box-shadow:0 12px 32px rgba(0,0,0,.55); max-width:260px; }
+  #tip b { display:block; color:var(--text); font-weight:600; margin-bottom:3px; }
+  #tip span { color:var(--muted); font-family:var(--mono); font-size:11.5px; }
+
+  .foot { margin-top:56px; padding-top:22px; border-top:1px solid var(--border);
+          font-family:var(--mono); font-size:11px; color:var(--dim);
+          display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+
+  .btn-more { font:inherit; font-size:12.5px; color:var(--muted); background:var(--raised);
+              border:1px solid var(--border); border-radius:9px; padding:8px 14px;
+              cursor:pointer; margin-top:12px; }
+  .btn-more:hover { color:var(--text); border-color:var(--border-lt); }
+
+  @media (max-width:720px){
+    .wrap{ padding:0 14px 80px; } .top{ padding:12px 14px; }
+    .ctl{ width:100%; } .top-in{ gap:10px; }
+    .kpi .k-v{ font-size:25px; }
+  }
+  @media (prefers-reduced-motion:reduce){ *{ transition:none!important; } }
+</style>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand"><i></i>Пульт продаж<small>Turon</small></div>
+    <div class="spacer"></div>
+    <div class="ctl"><span class="ctl-lbl">Вход</span><div class="seg" id="roleSeg"></div></div>
+    <div class="ctl"><span class="ctl-lbl">Период</span><div class="seg" id="perSeg"></div></div>
+    <div class="ctl"><span class="ctl-lbl">Валюта</span><div class="seg" id="curSeg"></div></div>
+    <div class="rate-box" id="rateBox"><span>1 $ =</span><input id="rate" type="number" min="1" step="10" value="12800"><span>сум</span></div>
+    <label class="toggle"><input type="checkbox" id="mask">Скрыть имена клиентов</label>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="ctx"></div>
+
+  <div class="grid g4" id="kpis"></div>
+
+  <div id="attWrap"></div>
+
+  <div id="ropOnly"></div>
+
+  <h2 class="sec">Куда идут продажи</h2>
+  <p class="sec-note">Прибыль агентства по направлениям и туроператорам. Шкала одного тона: чем светлее полоса, тем больше вклад.</p>
+  <div class="grid g2">
+    <div class="card">
+      <div class="card-h"><span class="card-t">Направления</span><span class="card-s" id="dirCnt"></span></div>
+      <div class="rank" id="dirs"></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><span class="card-t">Туроператоры</span><span class="card-s" id="opCnt"></span></div>
+      <div class="rank" id="ops"></div>
+    </div>
+  </div>
+
+  <h2 class="sec">Сделки</h2>
+  <p class="sec-note" id="dealsNote"></p>
+  <div class="tw"><table id="dealsTbl"></table></div>
+  <button class="btn-more" id="moreBtn" hidden>Показать все</button>
+
+  <div id="quality"></div>
+
+  <div class="foot">
+    <span>Источник: ежемесячный отчёт в Excel · май–июль 2026 · 105 сделок</span>
+    <span>Прототип на реальных данных</span>
+  </div>
+</div>
+
+<div id="tip"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+
+const S = {
+  role: 'rop',
+  period: '2026-07',
+  currency: 'USD',
+  rate: 12800,
+  mask: false,
+  dealSort: { key: 'profit', dir: -1 },
+  mgrSort: { key: 'profit', dir: -1 },
+  dealsAll: false
+};
+
+const PERIOD_NAMES = { '2026-05':'Май', '2026-06':'Июнь', '2026-07':'Июль' };
+const PERIODS = [...new Set(DATA.deals.map(d => d.period))].sort();
+const MANAGERS = [...new Set(DATA.deals.map(d => d.manager))].sort();
+const TODAY = new Date('2026-08-28');
+
+/* ---------- формат ---------- */
+const nf = new Intl.NumberFormat('ru-RU');
+function money(v, opts) {
+  opts = opts || {};
+  if (v === null || v === undefined) return '—';
+  if (S.currency === 'USD') {
+    const s = '$' + nf.format(Math.round(Math.abs(v)));
+    return (v < 0 ? '−' : (opts.sign && v > 0 ? '+' : '')) + s;
+  }
+  const u = Math.abs(v) * S.rate;
+  const s = u >= 1e9 ? (u / 1e9).toFixed(2).replace('.', ',') + ' млрд'
+          : u >= 1e6 ? (u / 1e6).toFixed(1).replace('.', ',') + ' млн'
+          : nf.format(Math.round(u));
+  return (v < 0 ? '−' : (opts.sign && v > 0 ? '+' : '')) + s + ' сум';
+}
+const pct = v => (v === null ? '—' : v.toFixed(1).replace('.', ',') + '%');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function maskName(n) {
+  if (!n) return '—';
+  if (!S.mask) return n;
+  return n.split(/\s+/).map((w, i) => i === 0 ? w[0] + '·'.repeat(Math.max(w.length - 1, 2)) : w[0] + '.').join(' ');
+}
+function dmy(iso) {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-');
+  return d + '.' + m + '.' + y.slice(2);
+}
+const RAMP = ['--r1','--r2','--r3','--r4','--r5'];
+const rampAt = (i, n) => 'var(' + RAMP[Math.min(RAMP.length - 1, Math.round((1 - i / Math.max(n - 1, 1)) * (RAMP.length - 1)))] + ')';
+
+/* ---------- выборки ---------- */
+function scope(period) {
+  let d = DATA.deals;
+  if (period !== 'all') d = d.filter(x => x.period === period);
+  if (S.role !== 'rop') d = d.filter(x => x.manager === S.role);
+  return d;
+}
+function agg(list) {
+  const a = { n: list.length, gross: 0, profit: 0, pax: 0, clientDebt: 0, opDebt: 0, gaps: 0 };
+  for (const d of list) {
+    a.gross += d.gross || 0;
+    a.profit += d.profit || 0;
+    a.pax += d.pax || 0;
+    a.clientDebt += Math.max(d.client_debt || 0, 0);
+    a.opDebt += d.operator_debt || 0;
+    if (d.gaps && d.gaps.length) a.gaps++;
+  }
+  a.avg = a.n ? a.gross / a.n : 0;
+  a.margin = a.gross ? a.profit / a.gross * 100 : null;
+  return a;
+}
+// Доля расхода на рекламу с одного менеджера за месяц.
+const adShare = p => (DATA.ad_spend[p] || 0) / DATA.ad_spend_split;
+
+// Сколько рекламы вычитается у конкретного менеджера за выбранный период.
+// Считаем только те месяцы, в которых у него были продажи: иначе менеджер,
+// вышедший в июле, платит и за май с июнем.
+function adFor(manager, period) {
+  const months = period === 'all' ? PERIODS : [period];
+  return months.reduce((s, p) =>
+    s + (DATA.deals.some(d => d.manager === manager && d.period === p) ? adShare(p) : 0), 0);
+}
+function adTotalFor(period) {
+  const mgrs = [...new Set(scope(period).map(d => d.manager))];
+  return mgrs.reduce((s, m) => s + adFor(m, period), 0);
+}
+function byKey(list, key) {
+  const m = new Map();
+  for (const d of list) {
+    const k = d[key] || '—';
+    const v = m.get(k) || { key: k, n: 0, gross: 0, profit: 0 };
+    v.n++; v.gross += d.gross || 0; v.profit += d.profit || 0;
+    m.set(k, v);
+  }
+  return [...m.values()].sort((a, b) => b.profit - a.profit);
+}
+
+/* ---------- подсказка ---------- */
+const tip = document.getElementById('tip');
+function showTip(e, html) {
+  tip.innerHTML = html;
+  tip.style.opacity = '1';
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY - 12;
+  if (x + r.width > innerWidth - 10) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 10) y = innerHeight - r.height - 10;
+  tip.style.left = x + 'px'; tip.style.top = Math.max(y, 8) + 'px';
+}
+const hideTip = () => { tip.style.opacity = '0'; };
+
+/* ---------- управление ---------- */
+function seg(el, items, cur, cb) {
+  el.innerHTML = items.map(i =>
+    `<button data-v="${esc(i.v)}" aria-pressed="${i.v === cur}">${esc(i.t)}</button>`).join('');
+  el.onclick = e => {
+    const b = e.target.closest('button');
+    if (b) { cb(b.dataset.v); }
+  };
+}
+
+function renderControls() {
+  seg(document.getElementById('roleSeg'),
+    [{ v: 'rop', t: 'РОП' }].concat(MANAGERS.map(m => ({ v: m, t: m }))),
+    S.role, v => { S.role = v; S.dealsAll = false; render(); });
+
+  seg(document.getElementById('perSeg'),
+    PERIODS.map(p => ({ v: p, t: PERIOD_NAMES[p] || p })).concat([{ v: 'all', t: 'Всё' }]),
+    S.period, v => { S.period = v; S.dealsAll = false; render(); });
+
+  seg(document.getElementById('curSeg'),
+    [{ v: 'USD', t: '$' }, { v: 'UZS', t: 'сум' }],
+    S.currency, v => { S.currency = v; render(); });
+
+  document.getElementById('rateBox').style.display = S.currency === 'UZS' ? 'flex' : 'none';
+}
+document.getElementById('rate').oninput = e => {
+  S.rate = Math.max(1, +e.target.value || 1); render();
+};
+document.getElementById('mask').onchange = e => { S.mask = e.target.checked; render(); };
+
+/* ---------- контекст ---------- */
+function renderCtx() {
+  const el = document.getElementById('ctx');
+  if (S.role === 'rop') {
+    el.innerHTML = `<div class="flag info"><span class="fi">Вход РОП</span><div>
+      Видны все менеджеры, все сделки и расчёт выплат по отделу.
+      <b>Переключите «Вход» на любого менеджера</b> — экран перестроится на его личные данные,
+      а блоки с чужими цифрами исчезнут. В рабочей версии это ограничение стоит в базе,
+      а не в интерфейсе: чужие строки просто не отдаются.</div></div>`;
+  } else {
+    el.innerHTML = `<div class="flag info"><span class="fi">Вход менеджера</span><div>
+      <b>${esc(S.role)}</b> видит только свои сделки и свою выплату.
+      Рейтинга коллег, сводки по отделу и чужих клиентов на этом экране нет.</div></div>`;
+  }
+}
+
+/* ---------- KPI ---------- */
+function renderKpis() {
+  const cur = agg(scope(S.period));
+  const idx = PERIODS.indexOf(S.period);
+  const prev = (S.period !== 'all' && idx > 0) ? agg(scope(PERIODS[idx - 1])) : null;
+  const dlt = (a, b) => (b && b > 0) ? ((a - b) / b * 100) : null;
+
+  const delta = (v, label) => {
+    if (v === null) return `<div class="k-s">${label}</div>`;
+    const c = v >= 0 ? 'up' : 'down', ar = v >= 0 ? '↑' : '↓';
+    return `<div class="k-s"><span class="${c}">${ar} ${Math.abs(v).toFixed(1).replace('.', ',')}%</span> ${label}</div>`;
+  };
+  const prevName = prev ? 'к ' + (PERIOD_NAMES[PERIODS[idx - 1]] || '').toLowerCase() + 'ю' : '';
+
+  const commission = cur.profit * DATA.commission_rate;
+  const adTotal = S.role === 'rop' ? adTotalFor(S.period) : adFor(S.role, S.period);
+  const payout = commission - adTotal;
+
+  document.getElementById('kpis').innerHTML = [
+    `<div class="card kpi lead"><div class="k-l">${S.role === 'rop' ? 'Прибыль агентства' : 'Прибыль по моим сделкам'}</div>
+      <div class="k-v">${money(cur.profit)}</div>
+      ${prev ? delta(dlt(cur.profit, prev.profit), prevName) : `<div class="k-s">маржа ${pct(cur.margin)}</div>`}</div>`,
+    `<div class="card kpi"><div class="k-l">Оборот</div>
+      <div class="k-v">${money(cur.gross)}</div>
+      ${prev ? delta(dlt(cur.gross, prev.gross), prevName) : `<div class="k-s">${cur.n} сделок</div>`}</div>`,
+    `<div class="card kpi"><div class="k-l">Продаж / туристов</div>
+      <div class="k-v">${cur.n} <span style="color:var(--dim)">/</span> ${cur.pax}</div>
+      <div class="k-s">средний чек ${money(cur.avg)}</div></div>`,
+    `<div class="card kpi"><div class="k-l">${S.role === 'rop' ? 'К выплате менеджерам' : 'Моя выплата'}</div>
+      <div class="k-v">${money(payout)}</div>
+      <div class="k-s">комиссия ${money(commission)} − реклама ${money(adTotal)}</div></div>`
+  ].join('');
+}
+
+/* ---------- требует внимания ---------- */
+function renderAttention() {
+  const list = scope(S.period);
+  const opDebt = list.filter(d => (d.operator_debt || 0) > 0).sort((a, b) => b.operator_debt - a.operator_debt);
+  const clDebt = list.filter(d => (d.client_debt || 0) > 0).sort((a, b) => b.client_debt - a.client_debt);
+  const soon = list.filter(d => d.depart_at && new Date(d.depart_at) >= TODAY)
+                   .sort((a, b) => a.depart_at.localeCompare(b.depart_at));
+  const sum = (a, k) => a.reduce((s, x) => s + x[k], 0);
+
+  const item = (cls, mark, title, sub, amt, amtCls) =>
+    `<div class="att-i"><div class="ic ${cls}">${mark}</div>
+      <div class="tx"><b>${title}</b><s>${sub}</s></div>
+      <div class="amt ${amtCls || ''}">${amt}</div></div>`;
+
+  const block = (title, count, sub, rows) => `<div class="card">
+      <div class="card-h"><span class="card-t">${title}</span><span class="card-s">${sub}</span></div>
+      <div class="att">${rows || '<div class="empty">Ничего не требует действий</div>'}</div></div>`;
+
+  document.getElementById('attWrap').innerHTML = `
+    <h2 class="sec">Требует внимания</h2>
+    <p class="sec-note">То, что в Excel не видно без ручного просмотра всех строк: незакрытые долги и ближайшие вылеты. Сегодня — 28 августа 2026.</p>
+    <div class="grid g2">
+      ${block('Мы должны туроператорам', opDebt.length,
+        opDebt.length ? money(sum(opDebt, 'operator_debt')) + ' · ' + opDebt.length + ' шт.' : 'чисто',
+        opDebt.slice(0, 6).map(d => item('r', '!', maskName(d.client),
+          `${d.operator || '—'} · ${d.direction || '—'} · вылет ${dmy(d.depart_at)}`,
+          money(d.operator_debt), 'down')).join(''))}
+      ${block('Клиенты должны нам', clDebt.length,
+        clDebt.length ? money(sum(clDebt, 'client_debt')) + ' · ' + clDebt.length + ' шт.' : 'чисто',
+        clDebt.slice(0, 6).map(d => item('w', '!', maskName(d.client),
+          `${d.direction || '—'} · вылет ${dmy(d.depart_at)}`,
+          money(d.client_debt))).join(''))}
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      ${block('Ближайшие вылеты', soon.length, soon.length + ' впереди',
+        soon.slice(0, 6).map(d => item('g', '✈', maskName(d.client),
+          `${d.direction || '—'} · ${d.pax} чел. · ${d.manager}`,
+          dmy(d.depart_at))).join(''))}
+      ${S.role === 'rop' ? block('Расход на таргетированную рекламу',
+        0, money(PERIODS.reduce((s, p) => s + (DATA.ad_spend[p] || 0), 0)) + ' за 3 мес.',
+        PERIODS.map(p => {
+          const on = (S.period === p || S.period === 'all');
+          return `<div class="att-i"${on ? '' : ' style="opacity:.45"'}>
+            <div class="ic w">◎</div>
+            <div class="tx"><b>${PERIOD_NAMES[p]}</b><s>делится на ${DATA.ad_spend_split} долей → ${esc(money((DATA.ad_spend[p] || 0) / DATA.ad_spend_split))} с менеджера</s></div>
+            <div class="amt">${esc(money(DATA.ad_spend[p] || 0))}</div></div>`;
+        }).join('')) : ''}
+    </div>`;
+}
+
+/* ---------- рейтинг менеджеров + графики (только РОП) ---------- */
+function renderRop() {
+  const el = document.getElementById('ropOnly');
+  if (S.role !== 'rop') { el.innerHTML = renderMyDynamics(); bindSmall(); return; }
+
+  const list = scope(S.period);
+  const rows = MANAGERS.map(m => {
+    const own = list.filter(d => d.manager === m);
+    const a = agg(own);
+    const commission = a.profit * DATA.commission_rate;
+    const ad = adFor(m, S.period);
+    return { m, n: a.n, pax: a.pax, gross: a.gross, profit: a.profit,
+             margin: a.margin, avg: a.avg, commission, ad, payout: commission - ad };
+  }).filter(r => r.n > 0);
+
+  const k = S.mgrSort.key, dir = S.mgrSort.dir;
+  rows.sort((a, b) => (a[k] > b[k] ? 1 : a[k] < b[k] ? -1 : 0) * dir);
+  const maxP = Math.max(...rows.map(r => r.profit), 1);
+
+  const cols = [
+    ['m', 'Менеджер', 0], ['n', 'Продаж', 1], ['pax', 'Туристов', 1],
+    ['gross', 'Оборот', 1], ['profit', 'Прибыль', 1], ['margin', 'Маржа', 1],
+    ['avg', 'Ср. чек', 1], ['commission', 'Комиссия 50%', 1],
+    ['ad', 'Реклама', 1], ['payout', 'К выплате', 1]
+  ];
+
+  const totals = rows.reduce((t, r) => {
+    t.n += r.n; t.pax += r.pax; t.gross += r.gross; t.profit += r.profit;
+    t.commission += r.commission; t.ad += r.ad; t.payout += r.payout; return t;
+  }, { n: 0, pax: 0, gross: 0, profit: 0, commission: 0, ad: 0, payout: 0 });
+
+  el.innerHTML = `
+    <h2 class="sec">Рейтинг менеджеров</h2>
+    <p class="sec-note">Комиссия — 50% от прибыли по сделке. Реклама — доля расхода на таргет (${money(adShare(S.period === 'all' ? PERIODS[PERIODS.length - 1] : S.period))} с человека за месяц, только за месяцы с продажами). К выплате = комиссия − реклама. Клик по строке открывает данные менеджера.</p>
+    <div class="tw"><table id="mgrTbl">
+      <thead><tr>${cols.map(c =>
+        `<th class="s ${c[2] ? 'num' : ''}" data-k="${c[0]}" data-on="${k === c[0] ? 1 : 0}">${c[1]}${k === c[0] ? (dir < 0 ? ' ↓' : ' ↑') : ''}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(r => `<tr class="click" data-m="${esc(r.m)}">
+        <td class="name">${esc(r.m)}</td>
+        <td class="num">${r.n}</td><td class="num">${r.pax}</td>
+        <td class="num">${money(r.gross)}</td>
+        <td class="num barcell">${money(r.profit)}
+          <span class="bg"></span><span class="fg" style="width:calc((100% - 28px) * ${(r.profit / maxP).toFixed(3)})"></span></td>
+        <td class="num">${pct(r.margin)}</td>
+        <td class="num">${money(r.avg)}</td>
+        <td class="num">${money(r.commission)}</td>
+        <td class="num" style="color:var(--neg)">−${money(r.ad).replace('−', '')}</td>
+        <td class="num" style="color:${r.payout < 0 ? 'var(--neg)' : 'var(--accent)'}">${money(r.payout)}</td></tr>`).join('')}
+      <tr><td class="name">Итого</td><td class="num">${totals.n}</td><td class="num">${totals.pax}</td>
+        <td class="num">${money(totals.gross)}</td><td class="num">${money(totals.profit)}</td>
+        <td class="num">${pct(totals.gross ? totals.profit / totals.gross * 100 : null)}</td>
+        <td class="num">${money(totals.n ? totals.gross / totals.n : 0)}</td>
+        <td class="num">${money(totals.commission)}</td>
+        <td class="num" style="color:var(--neg)">−${money(totals.ad).replace('−', '')}</td>
+        <td class="num" style="color:var(--accent)">${money(totals.payout)}</td></tr>
+      </tbody></table></div>
+
+    <h2 class="sec">Динамика по месяцам</h2>
+    <p class="sec-note">Прибыль агентства помесячно и вклад каждого менеджера. Отдельные графики вместо одного общего — так видно форму каждого, а не только самого крупного.</p>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-h"><span class="card-t">Прибыль агентства</span><span class="card-s">май — июль 2026</span></div>
+      ${monthChart(DATA.deals)}
+    </div>
+    <div class="sm">${MANAGERS.map(m => smallCard(m)).join('')}</div>`;
+
+  document.querySelectorAll('#mgrTbl th.s').forEach(th => {
+    th.onclick = () => {
+      const key = th.dataset.k;
+      S.mgrSort = { key, dir: S.mgrSort.key === key ? -S.mgrSort.dir : -1 };
+      render();
+    };
+  });
+  document.querySelectorAll('#mgrTbl tr.click').forEach(tr => {
+    tr.onclick = () => { S.role = tr.dataset.m; S.dealsAll = false; render(); scrollTo({ top: 0, behavior: 'smooth' }); };
+  });
+  bindSmall();
+}
+
+function renderMyDynamics() {
+  return `<h2 class="sec">Моя динамика</h2>
+    <p class="sec-note">Прибыль по месяцам — только по моим сделкам.</p>
+    <div class="card">
+      <div class="card-h"><span class="card-t">${esc(S.role)}</span><span class="card-s">май — июль 2026</span></div>
+      ${monthChart(DATA.deals.filter(d => d.manager === S.role))}
+    </div>`;
+}
+
+/* столбцы по месяцам — HTML, не SVG */
+function monthChart(deals) {
+  const vals = PERIODS.map(p => {
+    const rows = deals.filter(d => d.period === p);
+    return { p, v: rows.reduce((s, d) => s + (d.profit || 0), 0), n: rows.length };
+  });
+  const max = Math.max(...vals.map(v => v.v), 1);
+  const H = 164;
+  const gl = [0, .5, 1].map(f =>
+    `<span class="gl" style="bottom:${22 + f * (H - 22)}px"></span>`).join('');
+  const cols = vals.map((v, i) => {
+    const h = Math.max(Math.round((H - 22) * (v.v / max)), 3);
+    return `<div class="col mb" data-t="${esc(PERIOD_NAMES[v.p])}|${esc(money(v.v))}|${v.n} сделок">
+      <span class="cv">${esc(money(v.v))}</span>
+      <span class="cb" style="height:${h}px;background:${rampAt(vals.length - 1 - i, vals.length)}"></span>
+      <span class="cl">${esc(PERIOD_NAMES[v.p])}</span></div>`;
+  }).join('');
+  return `<div class="cols">${gl}${cols}</div>`;
+}
+
+function smallCard(m) {
+  const own = DATA.deals.filter(d => d.manager === m);
+  const vals = PERIODS.map(p => own.filter(d => d.period === p)
+    .reduce((s, d) => s + (d.profit || 0), 0));
+  const tot = vals.reduce((a, b) => a + b, 0);
+  // Общий потолок для всех карточек — иначе высоты между менеджерами
+  // несравнимы и маленький результат выглядит как большой.
+  const max = Math.max(...MANAGERS.map(mm => Math.max(...PERIODS.map(p =>
+    DATA.deals.filter(d => d.manager === mm && d.period === p)
+      .reduce((s, d) => s + (d.profit || 0), 0)))), 1);
+  const best = Math.max(...vals);
+  const bars = vals.map((v, i) =>
+    `<span class="mb2 mb" data-t="${esc(m)} · ${esc(PERIOD_NAMES[PERIODS[i]])}|${esc(money(v))}|"
+       style="height:${Math.max(Math.round(52 * v / max), 2)}px;
+              background:${v === best && v > 0 ? 'var(--r5)' : 'var(--r2)'}"></span>`).join('');
+  return `<div class="smc"><div class="smn">${esc(m)}</div>
+    <div class="smv">${esc(money(tot))} за 3 мес.</div>
+    <div class="mini" role="img" aria-label="Прибыль ${esc(m)} по месяцам">${bars}</div></div>`;
+}
+
+function bindSmall() {
+  document.querySelectorAll('.mb').forEach(g => {
+    g.onmousemove = e => {
+      const [a, b, c] = g.dataset.t.split('|');
+      showTip(e, `<b>${a}</b><span>${b}${c ? ' · ' + c : ''}</span>`);
+    };
+    g.onmouseleave = hideTip;
+  });
+}
+
+/* ---------- рейтинги направлений / операторов ---------- */
+function renderRanks() {
+  const list = scope(S.period);
+  const fill = (el, key, cntEl) => {
+    let rows = byKey(list, key).filter(r => r.profit > 0);
+    document.getElementById(cntEl).textContent = rows.length + ' шт.';
+    if (rows.length > 8) {
+      const rest = rows.slice(8);
+      rows = rows.slice(0, 8).concat([{
+        key: 'Прочие (' + rest.length + ')',
+        n: rest.reduce((s, r) => s + r.n, 0),
+        gross: rest.reduce((s, r) => s + r.gross, 0),
+        profit: rest.reduce((s, r) => s + r.profit, 0), rest: true
+      }]);
+    }
+    const max = Math.max(...rows.map(r => r.profit), 1);
+    document.getElementById(el).innerHTML = rows.length ? rows.map((r, i) => `
+      <div class="rrow" data-t="${esc(r.key)}|${esc(money(r.profit))} прибыли|${r.n} сделок · оборот ${esc(money(r.gross))}">
+        <span class="rn">${esc(r.key)}</span>
+        <span class="rt"><i style="width:${Math.max(r.profit / max * 100, 1.5)}%;background:${r.rest ? 'var(--border-lt)' : rampAt(i, rows.length)}"></i></span>
+        <span class="rv">${esc(money(r.profit))}</span></div>`).join('')
+      : '<div class="empty">Нет данных за период</div>';
+  };
+  fill('dirs', 'direction', 'dirCnt');
+  fill('ops', 'operator', 'opCnt');
+  document.querySelectorAll('.rrow').forEach(r => {
+    r.onmousemove = e => {
+      const [a, b, c] = r.dataset.t.split('|');
+      showTip(e, `<b>${a}</b><span>${b}<br>${c}</span>`);
+    };
+    r.onmouseleave = hideTip;
+  });
+}
+
+/* ---------- таблица сделок ---------- */
+function renderDeals() {
+  const list = scope(S.period).slice();
+  const k = S.dealSort.key, dir = S.dealSort.dir;
+  list.sort((a, b) => {
+    const x = a[k], y = b[k];
+    if (x === null || x === undefined) return 1;
+    if (y === null || y === undefined) return -1;
+    return (x > y ? 1 : x < y ? -1 : 0) * dir;
+  });
+  const shown = S.dealsAll ? list : list.slice(0, 12);
+
+  const cols = [
+    ['client', 'Клиент', 0], ['manager', 'Менеджер', 0], ['direction', 'Направление', 0],
+    ['operator', 'Оператор', 0], ['pax', 'Чел.', 1], ['depart_at', 'Вылет', 0],
+    ['gross', 'Брутто', 1], ['net', 'Нетто', 1], ['profit', 'Прибыль', 1],
+    ['operator_debt', 'Долг оператору', 1]
+  ];
+
+  document.getElementById('dealsNote').textContent =
+    (S.role === 'rop' ? 'Все сделки' : 'Мои сделки') + ' за ' +
+    (S.period === 'all' ? 'май — июль' : (PERIOD_NAMES[S.period] || '').toLowerCase()) +
+    ' — ' + list.length + ' шт. Столбцы сортируются.';
+
+  document.getElementById('dealsTbl').innerHTML = `
+    <thead><tr>${cols.map(c =>
+      `<th class="s ${c[2] ? 'num' : ''}" data-k="${c[0]}" data-on="${k === c[0] ? 1 : 0}">${c[1]}${k === c[0] ? (dir < 0 ? ' ↓' : ' ↑') : ''}</th>`).join('')}</tr></thead>
+    <tbody>${shown.map(d => `<tr>
+      <td class="name">${esc(maskName(d.client))}</td>
+      <td>${esc(d.manager)}</td>
+      <td>${esc(d.direction || '—')}</td>
+      <td>${esc(d.operator || '—')}</td>
+      <td class="num">${d.pax}</td>
+      <td>${dmy(d.depart_at)}</td>
+      <td class="num">${money(d.gross)}</td>
+      <td class="num">${d.net === null ? '<span style="color:var(--warn)">не указано</span>' : money(d.net)}</td>
+      <td class="num" style="color:${d.profit === null ? 'var(--warn)' : 'var(--text)'}">${d.profit === null ? '—' : money(d.profit)}</td>
+      <td class="num" style="color:${d.operator_debt ? 'var(--neg)' : 'var(--dim)'}">${d.operator_debt ? money(d.operator_debt) : '—'}</td>
+    </tr>`).join('')}</tbody>`;
+
+  const btn = document.getElementById('moreBtn');
+  btn.hidden = list.length <= 12 || S.dealsAll;
+  btn.textContent = 'Показать все ' + list.length;
+  btn.onclick = () => { S.dealsAll = true; render(); };
+
+  document.querySelectorAll('#dealsTbl th.s').forEach(th => {
+    th.onclick = () => {
+      const key = th.dataset.k;
+      S.dealSort = { key, dir: S.dealSort.key === key ? -S.dealSort.dir : -1 };
+      render();
+    };
+  });
+}
+
+/* ---------- качество данных ---------- */
+function renderQuality() {
+  if (S.role !== 'rop') { document.getElementById('quality').innerHTML = ''; return; }
+  document.getElementById('quality').innerHTML = `
+    <h2 class="sec">Что нашлось при переносе из Excel</h2>
+    <div class="flag warn"><span class="fi">Свод</span><div>
+      <b>Ручной свод за июль недосчитал $273 прибыли.</b>
+      У Шахнозы в итог попали сделки на $75 и $88, а сделка на $143 в сумму не вошла;
+      ещё $30 и $100 потерялись у Азизы и Сарвиноз. Считает дашборд — расхождения исчезают,
+      а вместе с ними и споры о зарплате.</div></div>
+    <div class="flag warn"><span class="fi">Строки</span><div>
+      <b>${DATA.issues.length} замечания к исходным данным.</b>
+      <ul>${DATA.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
+      В рабочей версии такие строки не теряются молча: они попадают в журнал импорта,
+      и вы видите, что именно нужно поправить в таблице.</div></div>
+    <div class="flag info"><span class="fi">Чего нет</span><div>
+      В отчёте фиксируются только состоявшиеся продажи — <b>обращений клиентов в нём нет</b>.
+      Поэтому конверсию и воронку посчитать не из чего: неизвестно, сколько человек написало
+      и скольким не продали. Это единственная колонка, которую стоит добавить в таблицу —
+      она откроет самую полезную для РОПа аналитику.</div></div>`;
+}
+
+/* ---------- сборка ---------- */
+function render() {
+  renderControls();
+  renderCtx();
+  renderKpis();
+  renderAttention();
+  renderRop();
+  renderRanks();
+  renderDeals();
+  renderQuality();
+}
+render();
+</script>
