@@ -163,7 +163,23 @@
   .rrow .rt { height:20px; border-radius:5px; background:var(--raised2); overflow:hidden; }
   .rrow .rt i { display:block; height:100%; border-radius:5px; }
   .rrow .rv { font-family:var(--mono); font-size:12px; color:var(--muted); text-align:right; }
+  .rrow { cursor:pointer; border-radius:7px; padding:2px 4px; margin:0 -4px;
+          transition:background .13s; }
+  .rrow:hover { background:var(--raised); }
   .rrow:hover .rn { color:var(--accent); }
+  .rrow:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  .rrow[aria-pressed="true"] .rn { color:var(--accent); font-weight:600; }
+  .rrow.more .rn { color:var(--dim); }
+  .rrow.more:hover .rn { color:var(--accent); }
+
+  .chip { display:inline-flex; align-items:center; gap:8px; background:var(--accent);
+          color:#12160B; border:0; border-radius:9px; padding:6px 10px 6px 12px;
+          font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;
+          margin:0 0 12px; }
+  .chip b { font-weight:400; opacity:.7; }
+  .chip x { font-style:normal; font-size:14px; line-height:1; opacity:.75; }
+  .chip:hover x { opacity:1; }
+  .chip:focus-visible { outline:2px solid var(--text); outline-offset:2px; }
 
   .sm { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
   .smc { background:var(--raised); border:1px solid var(--border); border-radius:12px;
@@ -286,7 +302,9 @@ const S = {
   mask: false,
   dealSort: { key: 'profit', dir: -1 },
   mgrSort: { key: 'profit', dir: -1 },
-  dealsAll: false
+  dealsAll: false,
+  expand: { direction: false, operator: false },   // раскрыты ли «Прочие»
+  filter: null                                     // {kind, value} — фильтр таблицы сделок
 };
 
 const PERIOD_NAMES = { '2026-05':'Май', '2026-06':'Июнь', '2026-07':'Июль' };
@@ -397,11 +415,11 @@ function seg(el, items, cur, cb) {
 function renderControls() {
   seg(document.getElementById('roleSeg'),
     [{ v: 'rop', t: 'РОП' }].concat(MANAGERS.map(m => ({ v: m, t: m }))),
-    S.role, v => { S.role = v; S.dealsAll = false; render(); });
+    S.role, v => { S.role = v; S.dealsAll = false; S.filter = null; render(); });
 
   seg(document.getElementById('perSeg'),
     PERIODS.map(p => ({ v: p, t: PERIOD_NAMES[p] || p })).concat([{ v: 'all', t: 'Всё' }]),
-    S.period, v => { S.period = v; S.dealsAll = false; render(); });
+    S.period, v => { S.period = v; S.dealsAll = false; S.filter = null; render(); });
 
   seg(document.getElementById('curSeg'),
     [{ v: 'USD', t: '$' }, { v: 'UZS', t: 'сум' }],
@@ -591,7 +609,7 @@ function renderRop() {
     };
   });
   document.querySelectorAll('#mgrTbl tr.click').forEach(tr => {
-    tr.onclick = () => { S.role = tr.dataset.m; S.dealsAll = false; render(); scrollTo({ top: 0, behavior: 'smooth' }); };
+    tr.onclick = () => { S.role = tr.dataset.m; S.dealsAll = false; S.filter = null; render(); scrollTo({ top: 0, behavior: 'smooth' }); };
   });
   bindSmall();
 }
@@ -656,42 +674,82 @@ function bindSmall() {
 }
 
 /* ---------- рейтинги направлений / операторов ---------- */
+const LIMIT = 8;   // сколько строк показывать до «Прочих»
+
 function renderRanks() {
   const list = scope(S.period);
-  const fill = (el, key, cntEl) => {
-    let rows = byKey(list, key).filter(r => r.profit > 0);
-    document.getElementById(cntEl).textContent = rows.length + ' шт.';
-    if (rows.length > 8) {
-      const rest = rows.slice(8);
-      rows = rows.slice(0, 8).concat([{
-        key: 'Прочие (' + rest.length + ')',
-        n: rest.reduce((s, r) => s + r.n, 0),
-        gross: rest.reduce((s, r) => s + r.gross, 0),
-        profit: rest.reduce((s, r) => s + r.profit, 0), rest: true
-      }]);
-    }
-    const max = Math.max(...rows.map(r => r.profit), 1);
-    document.getElementById(el).innerHTML = rows.length ? rows.map((r, i) => `
-      <div class="rrow" data-t="${esc(r.key)}|${esc(money(r.profit))} прибыли|${r.n} сделок · оборот ${esc(money(r.gross))}">
+
+  const fill = (elId, key, cntId) => {
+    const all = byKey(list, key).filter(r => r.profit > 0);
+    document.getElementById(cntId).textContent = all.length + ' шт.';
+    const expanded = S.expand[key];
+    const hidden = all.length - LIMIT;
+
+    let rows = (expanded || hidden <= 0) ? all : all.slice(0, LIMIT);
+    const max = Math.max(...all.map(r => r.profit), 1);
+
+    let html = rows.map((r, i) => {
+      const on = S.filter && S.filter.kind === key && S.filter.value === r.key;
+      return `<div class="rrow" role="button" tabindex="0" aria-pressed="${on}"
+           data-kind="${key}" data-key="${esc(r.key)}"
+           data-t="${esc(r.key)}|${esc(money(r.profit))} прибыли|${r.n} сделок · оборот ${esc(money(r.gross))}">
         <span class="rn">${esc(r.key)}</span>
-        <span class="rt"><i style="width:${Math.max(r.profit / max * 100, 1.5)}%;background:${r.rest ? 'var(--border-lt)' : rampAt(i, rows.length)}"></i></span>
-        <span class="rv">${esc(money(r.profit))}</span></div>`).join('')
-      : '<div class="empty">Нет данных за период</div>';
+        <span class="rt"><i style="width:${Math.max(r.profit / max * 100, 1.5)}%;background:${rampAt(i, rows.length)}"></i></span>
+        <span class="rv">${esc(money(r.profit))}</span></div>`;
+    }).join('');
+
+    // «Прочие» — не заглушка, а переключатель: раскрывает оставшиеся строки.
+    if (hidden > 0) {
+      const rest = all.slice(LIMIT);
+      const restProfit = rest.reduce((s, r) => s + r.profit, 0);
+      const restDeals = rest.reduce((s, r) => s + r.n, 0);
+      html += `<div class="rrow more" role="button" tabindex="0" data-toggle="${key}"
+           data-t="${expanded ? 'Свернуть список' : 'Показать ещё ' + hidden}|${esc(money(restProfit))} прибыли|${restDeals} сделок">
+        <span class="rn">${expanded ? '← Свернуть' : 'Прочие (' + hidden + ') — показать'}</span>
+        ${expanded ? '<span></span><span></span>'
+          : `<span class="rt"><i style="width:${Math.max(restProfit / max * 100, 1.5)}%;background:var(--border-lt)"></i></span>
+             <span class="rv">${esc(money(restProfit))}</span>`}</div>`;
+    }
+
+    document.getElementById(elId).innerHTML = html || '<div class="empty">Нет данных за период</div>';
   };
+
   fill('dirs', 'direction', 'dirCnt');
   fill('ops', 'operator', 'opCnt');
+
   document.querySelectorAll('.rrow').forEach(r => {
     r.onmousemove = e => {
       const [a, b, c] = r.dataset.t.split('|');
       showTip(e, `<b>${a}</b><span>${b}<br>${c}</span>`);
     };
     r.onmouseleave = hideTip;
+
+    const act = () => {
+      hideTip();
+      if (r.dataset.toggle) {
+        S.expand[r.dataset.toggle] = !S.expand[r.dataset.toggle];
+        render();
+        return;
+      }
+      // Повторный клик по выбранной строке снимает фильтр.
+      const same = S.filter && S.filter.kind === r.dataset.kind && S.filter.value === r.dataset.key;
+      S.filter = same ? null : { kind: r.dataset.kind, value: r.dataset.key };
+      S.dealsAll = false;
+      render();
+      if (!same) document.getElementById('dealsNote')
+        .scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    r.onclick = act;
+    r.onkeydown = e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(); }
+    };
   });
 }
 
 /* ---------- таблица сделок ---------- */
 function renderDeals() {
-  const list = scope(S.period).slice();
+  let list = scope(S.period).slice();
+  if (S.filter) list = list.filter(d => (d[S.filter.kind] || '—') === S.filter.value);
   const k = S.dealSort.key, dir = S.dealSort.dir;
   list.sort((a, b) => {
     const x = a[k], y = b[k];
@@ -708,10 +766,15 @@ function renderDeals() {
     ['operator_debt', 'Долг оператору', 1]
   ];
 
-  document.getElementById('dealsNote').textContent =
+  const KIND = { direction: 'Направление', operator: 'Туроператор' };
+  document.getElementById('dealsNote').innerHTML =
     (S.role === 'rop' ? 'Все сделки' : 'Мои сделки') + ' за ' +
     (S.period === 'all' ? 'май — июль' : (PERIOD_NAMES[S.period] || '').toLowerCase()) +
-    ' — ' + list.length + ' шт. Столбцы сортируются.';
+    ' — ' + list.length + ' шт. Столбцы сортируются, строки в рейтингах выше фильтруют этот список.' +
+    (S.filter ? `<br><button class="chip" id="clearFilter" style="margin-top:10px">
+        <b>${KIND[S.filter.kind]}:</b> ${esc(S.filter.value)} <x>×</x></button>` : '');
+  const cf = document.getElementById('clearFilter');
+  if (cf) cf.onclick = () => { S.filter = null; S.dealsAll = false; render(); };
 
   document.getElementById('dealsTbl').innerHTML = `
     <thead><tr>${cols.map(c =>
