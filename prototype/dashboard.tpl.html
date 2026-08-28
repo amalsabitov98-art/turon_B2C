@@ -94,6 +94,16 @@
               letter-spacing:-.03em; line-height:1.05; font-variant-numeric:tabular-nums; }
   .kpi .k-s { margin-top:8px; font-size:12.5px; color:var(--dim);
               font-variant-numeric:tabular-nums; }
+  /* Две величины в одной карточке. Каждая подписана отдельно —
+     иначе «105 / 343» читается как дробь, а не как два числа. */
+  .k-dual { display:flex; gap:26px; }
+  .k-dual > span { display:flex; flex-direction:column; }
+  .k-dual b { font-family:var(--display); font-weight:500; font-size:29px;
+              letter-spacing:-.03em; line-height:1.05;
+              font-variant-numeric:tabular-nums; }
+  .k-dual s { text-decoration:none; font-family:var(--mono); font-size:10.5px;
+              letter-spacing:.09em; text-transform:uppercase; color:var(--dim);
+              margin-top:5px; }
   .kpi.lead { background:linear-gradient(152deg,rgba(190,242,100,.15),rgba(190,242,100,.03) 64%);
               border-color:rgba(190,242,100,.3); }
   .kpi.lead .k-v { color:var(--accent); }
@@ -444,10 +454,14 @@ function renderKpis() {
       ${prev ? delta(dlt(cur.profit, prev.profit), prevName) : `<div class="k-s">маржа ${pct(cur.margin)}</div>`}</div>`,
     `<div class="card kpi"><div class="k-l">Оборот</div>
       <div class="k-v">${money(cur.gross)}</div>
-      ${prev ? delta(dlt(cur.gross, prev.gross), prevName) : `<div class="k-s">${cur.n} сделок</div>`}</div>`,
-    `<div class="card kpi"><div class="k-l">Продаж / туристов</div>
-      <div class="k-v">${cur.n} <span style="color:var(--dim)">/</span> ${cur.pax}</div>
-      <div class="k-s">средний чек ${money(cur.avg)}</div></div>`,
+      ${prev ? delta(dlt(cur.gross, prev.gross), prevName)
+             : `<div class="k-s">за ${S.period === 'all' ? 'май — июль' : (PERIOD_NAMES[S.period] || '').toLowerCase()}</div>`}</div>`,
+    `<div class="card kpi"><div class="k-l">Продано туров</div>
+      <div class="k-dual">
+        <span><b>${cur.n}</b><s>сделок</s></span>
+        <span><b>${cur.pax}</b><s>туристов</s></span>
+      </div>
+      <div class="k-s">средний чек ${money(cur.avg)} за сделку</div></div>`,
     `<div class="card kpi"><div class="k-l">${S.role === 'rop' ? 'К выплате менеджерам' : 'Моя выплата'}</div>
       <div class="k-v">${money(payout)}</div>
       <div class="k-s">комиссия ${money(commission)} − реклама ${money(adTotal)}</div></div>`
