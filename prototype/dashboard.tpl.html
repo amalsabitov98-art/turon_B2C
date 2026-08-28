@@ -72,8 +72,11 @@
   .toggle input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
   /* ---------- сетка ---------- */
+  /* Отступ под липкую шапку, иначе заголовок уезжает под неё
+     при переходе по ссылке или после клика в рейтинге. */
   h2.sec { font-family:var(--display); font-weight:600; font-size:17px;
-           letter-spacing:-.015em; margin:38px 0 4px; }
+           letter-spacing:-.015em; margin:38px 0 4px; scroll-margin-top:110px; }
+  .sec-note { scroll-margin-top:110px; }
   .sec-note { font-size:13px; color:var(--dim); margin:0 0 16px; max-width:74ch; }
 
   .grid { display:grid; gap:14px; }
@@ -204,6 +207,31 @@
 
   .empty { color:var(--dim); font-size:13px; padding:14px 0; }
 
+  /* переключатель метрики внутри карточки */
+  .seg.mini button { font-size:11.5px; padding:4px 9px; }
+
+  /* матрица менеджер × направление */
+  .mx { width:100%; border-collapse:separate; border-spacing:3px; font-size:12.5px;
+        font-variant-numeric:tabular-nums; }
+  .mx th { padding:6px 8px; font-family:var(--mono); font-size:10px;
+           letter-spacing:.06em; text-transform:uppercase; color:var(--dim);
+           border:0; white-space:nowrap; text-align:right; font-weight:400; }
+  .mx th.rowh { text-align:left; color:var(--text); font-family:var(--body);
+                font-size:13px; text-transform:none; letter-spacing:0;
+                font-weight:500; }
+  .mx td { padding:9px 10px; border:0; border-radius:7px; text-align:right;
+           white-space:nowrap; }
+  .mx td.zero { background:var(--raised); color:var(--dim); }
+
+  /* таблица сравнения */
+  .cmp-heads { display:flex; gap:22px; flex-wrap:wrap; margin-bottom:16px; }
+  .cmp-heads > div { display:flex; align-items:center; gap:9px; }
+  .delta-up { color:var(--pos); } .delta-down { color:var(--neg); }
+  .delta-flat { color:var(--dim); }
+
+  .low { color:var(--warn); }
+  .lowbg { box-shadow:inset 3px 0 0 var(--warn); }
+
   /* ---------- плашки ---------- */
   .flag { display:flex; gap:12px; align-items:flex-start; border-radius:14px;
           padding:14px 16px; font-size:13.5px; margin:16px 0 0; }
@@ -264,7 +292,8 @@
   <div id="ropOnly"></div>
 
   <h2 class="sec">Куда идут продажи</h2>
-  <p class="sec-note">Прибыль агентства по направлениям и туроператорам. Шкала одного тона: чем светлее полоса, тем больше вклад.</p>
+  <p class="sec-note" id="rankNote"></p>
+  <div class="ctl" style="margin:0 0 16px"><span class="ctl-lbl">Считать по</span><div class="seg mini" id="metricSeg"></div></div>
   <div class="grid g2">
     <div class="card">
       <div class="card-h"><span class="card-t">Направления</span><span class="card-s" id="dirCnt"></span></div>
@@ -275,6 +304,8 @@
       <div class="rank" id="ops"></div>
     </div>
   </div>
+
+  <div id="cmpWrap"></div>
 
   <h2 class="sec">Сделки</h2>
   <p class="sec-note" id="dealsNote"></p>
@@ -304,8 +335,18 @@ const S = {
   mgrSort: { key: 'profit', dir: -1 },
   dealsAll: false,
   expand: { direction: false, operator: false },   // раскрыты ли «Прочие»
-  filter: null                                     // {kind, value} — фильтр таблицы сделок
+  filter: null,                                    // {kind, value} — фильтр таблицы сделок
+  rankMetric: 'profit',                            // profit | margin | gross
+  onlyLow: false,                                  // только низкомаржинальные сделки
+  cmpA: null, cmpB: null                           // периоды для сравнения
 };
+
+// Порог низкой маржи. Ниже него сделка почти не приносит денег при полной
+// загрузке менеджера, поэтому подсвечивается отдельно.
+const MARGIN_LOW = 5;
+// Минимум сделок, чтобы попасть в рейтинг по марже: одна сделка с 20%
+// не значит, что оператор выгодный.
+const MIN_DEALS_FOR_MARGIN = 3;
 
 const PERIOD_NAMES = { '2026-05':'Май', '2026-06':'Июнь', '2026-07':'Июль' };
 const PERIODS = [...new Set(DATA.deals.map(d => d.period))].sort();
@@ -415,11 +456,11 @@ function seg(el, items, cur, cb) {
 function renderControls() {
   seg(document.getElementById('roleSeg'),
     [{ v: 'rop', t: 'РОП' }].concat(MANAGERS.map(m => ({ v: m, t: m }))),
-    S.role, v => { S.role = v; S.dealsAll = false; S.filter = null; render(); });
+    S.role, v => { S.role = v; S.dealsAll = false; S.filter = null; S.onlyLow = false; render(); });
 
   seg(document.getElementById('perSeg'),
     PERIODS.map(p => ({ v: p, t: PERIOD_NAMES[p] || p })).concat([{ v: 'all', t: 'Всё' }]),
-    S.period, v => { S.period = v; S.dealsAll = false; S.filter = null; render(); });
+    S.period, v => { S.period = v; S.dealsAll = false; S.filter = null; S.onlyLow = false; render(); });
 
   seg(document.getElementById('curSeg'),
     [{ v: 'USD', t: '$' }, { v: 'UZS', t: 'сум' }],
@@ -504,6 +545,21 @@ function renderAttention() {
       <div class="card-h"><span class="card-t">${title}</span><span class="card-s">${sub}</span></div>
       <div class="att">${rows || '<div class="empty">Ничего не требует действий</div>'}</div></div>`;
 
+  // Продано вперёд: брони, вылет по которым ещё не наступил. Показывает,
+  // чем отдел живёт в следующем месяце, а не что заработал в прошлом.
+  const fwd = DATA.deals.filter(d => (S.role === 'rop' || d.manager === S.role)
+                                  && d.depart_at && new Date(d.depart_at) >= TODAY);
+  const fwdByMonth = {};
+  fwd.forEach(d => {
+    const k = d.depart_at.slice(0, 7);
+    (fwdByMonth[k] = fwdByMonth[k] || { n: 0, gross: 0, profit: 0, pax: 0 });
+    fwdByMonth[k].n++; fwdByMonth[k].gross += d.gross;
+    fwdByMonth[k].profit += d.profit || 0; fwdByMonth[k].pax += d.pax;
+  });
+  const MON = ['января','февраля','марта','апреля','мая','июня','июля',
+               'августа','сентября','октября','ноября','декабря'];
+  const monName = k => MON[+k.slice(5, 7) - 1] + ' ' + k.slice(0, 4);
+
   document.getElementById('attWrap').innerHTML = `
     <h2 class="sec">Требует внимания</h2>
     <p class="sec-note">То, что в Excel не видно без ручного просмотра всех строк: незакрытые долги и ближайшие вылеты. Сегодня — 28 августа 2026.</p>
@@ -520,10 +576,32 @@ function renderAttention() {
           money(d.client_debt))).join(''))}
     </div>
     <div class="grid g2" style="margin-top:14px">
+      <div class="card">
+        <div class="card-h"><span class="card-t">Продано вперёд</span>
+          <span class="card-s">вылет ещё не наступил</span></div>
+        <div class="k-dual" style="margin-bottom:4px">
+          <span><b>${esc(money(fwd.reduce((s, d) => s + d.gross, 0)))}</b><s>оборот</s></span>
+          <span><b>${esc(money(fwd.reduce((s, d) => s + (d.profit || 0), 0)))}</b><s>прибыль</s></span>
+        </div>
+        <div class="att" style="margin-top:12px">
+          ${Object.keys(fwdByMonth).sort().map(k => {
+            const v = fwdByMonth[k];
+            return `<div class="att-i"><div class="ic g">→</div>
+              <div class="tx"><b>${monName(k)}</b><s>${v.n} броней · ${v.pax} туристов</s></div>
+              <div class="amt">${esc(money(v.gross))}</div></div>`;
+          }).join('') || '<div class="empty">Вперёд ничего не продано</div>'}
+        </div>
+        <div class="flag warn" style="margin-top:14px"><span class="fi">Важно</span><div>
+          Цифра занижена: в файле есть листы только по июль, августовские брони
+          в него ещё не попали. На полных данных это одна из главных метрик
+          руководителя — чем отдел живёт в следующем месяце.</div></div>
+      </div>
       ${block('Ближайшие вылеты', soon.length, soon.length + ' впереди',
         soon.slice(0, 6).map(d => item('g', '✈', maskName(d.client),
           `${d.direction || '—'} · ${d.pax} чел. · ${d.manager}`,
           dmy(d.depart_at))).join(''))}
+    </div>
+    <div class="grid g2" style="margin-top:14px">
       ${S.role === 'rop' ? block('Расход на таргетированную рекламу',
         0, money(PERIODS.reduce((s, p) => s + (DATA.ad_spend[p] || 0), 0)) + ' за 3 мес.',
         PERIODS.map(p => {
@@ -599,7 +677,11 @@ function renderRop() {
       <div class="card-h"><span class="card-t">Прибыль агентства</span><span class="card-s">май — июль 2026</span></div>
       ${monthChart(DATA.deals)}
     </div>
-    <div class="sm">${MANAGERS.map(m => smallCard(m)).join('')}</div>`;
+    <div class="sm">${MANAGERS.map(m => smallCard(m)).join('')}</div>
+
+    <h2 class="sec">Кто на чём зарабатывает</h2>
+    <p class="sec-note">Прибыль по каждой паре «менеджер — направление». Видно специализацию: входящую заявку логично отдать тому, кто это направление уже возит.</p>
+    ${matrix(list)}`;
 
   document.querySelectorAll('#mgrTbl th.s').forEach(th => {
     th.onclick = () => {
@@ -612,6 +694,47 @@ function renderRop() {
     tr.onclick = () => { S.role = tr.dataset.m; S.dealsAll = false; S.filter = null; render(); scrollTo({ top: 0, behavior: 'smooth' }); };
   });
   bindSmall();
+}
+
+// Матрица менеджер × направление. Тепловая карта: одна шкала тона,
+// больше прибыли — светлее. Подпись внутри ячейки меняет цвет на тёмный,
+// когда фон становится слишком светлым для белого текста.
+function matrix(list) {
+  const dirs = byKey(list, 'direction').filter(r => r.profit > 0).slice(0, 7);
+  const mgrs = MANAGERS.filter(m => list.some(d => d.manager === m));
+  if (!dirs.length || !mgrs.length) return '<div class="empty">Нет данных за период</div>';
+
+  // Всё, что не попало в топ-7 направлений, сворачивается в колонку
+  // «Прочие»: иначе у менеджера с узкой специализацией строка выглядит
+  // пустой, хотя он продавал.
+  const top = new Set(dirs.map(d => d.key));
+  const cols = dirs.map(d => d.key).concat(['Прочие']);
+  const cell = {};
+  list.forEach(d => {
+    const dir = d.direction || '—';
+    const k = d.manager + '|' + (top.has(dir) ? dir : 'Прочие');
+    cell[k] = (cell[k] || 0) + (d.profit || 0);
+  });
+  const max = Math.max(...Object.values(cell), 1);
+
+  const rowTotal = m => cols.reduce((s, c) => s + (cell[m + '|' + c] || 0), 0);
+  const ordered = mgrs.slice().sort((a, b) => rowTotal(b) - rowTotal(a));
+
+  const head = `<tr><th class="rowh">Менеджер</th>
+    ${cols.map(c => `<th>${esc(c)}</th>`).join('')}<th>Итого</th></tr>`;
+
+  const body = ordered.map(m => `<tr><th class="rowh">${esc(m)}</th>
+    ${cols.map(c => {
+      const v = cell[m + '|' + c] || 0;
+      if (!v) return '<td class="zero">—</td>';
+      const k = v / max;                        // 0…1
+      const bg = `rgba(190,242,100,${(0.10 + k * 0.85).toFixed(3)})`;
+      const ink = k > 0.45 ? '#12160B' : 'var(--text)';
+      return `<td style="background:${bg};color:${ink};font-weight:${k > 0.45 ? 600 : 400}">${esc(money(v))}</td>`;
+    }).join('')}
+    <td style="background:var(--raised2);color:var(--text);font-weight:600">${esc(money(rowTotal(m)))}</td></tr>`).join('');
+
+  return `<div class="tw" style="padding:14px"><table class="mx">${head}${body}</table></div>`;
 }
 
 function renderMyDynamics() {
@@ -676,39 +799,62 @@ function bindSmall() {
 /* ---------- рейтинги направлений / операторов ---------- */
 const LIMIT = 8;   // сколько строк показывать до «Прочих»
 
+const METRICS = {
+  profit: { t: 'Прибыли', val: r => r.profit, fmt: r => money(r.profit) },
+  margin: { t: 'Марже', val: r => r.gross > 0 ? r.profit / r.gross * 100 : 0,
+            fmt: r => pct(r.gross > 0 ? r.profit / r.gross * 100 : null) },
+  gross:  { t: 'Обороту', val: r => r.gross, fmt: r => money(r.gross) }
+};
+
 function renderRanks() {
   const list = scope(S.period);
+  const M = METRICS[S.rankMetric];
+
+  seg(document.getElementById('metricSeg'),
+    Object.keys(METRICS).map(k => ({ v: k, t: METRICS[k].t })),
+    S.rankMetric, v => { S.rankMetric = v; render(); });
+
+  document.getElementById('rankNote').innerHTML = S.rankMetric === 'margin'
+    ? `Маржа — какая доля оборота осталась агентству. Показаны только те, где не меньше ${MIN_DEALS_FOR_MARGIN} сделок: по одной сделке о выгодности судить нельзя.`
+    : 'Направления и туроператоры по вкладу в результат. Шкала одного тона: чем светлее полоса, тем больше вклад. Строка фильтрует таблицу сделок ниже.';
 
   const fill = (elId, key, cntId) => {
-    const all = byKey(list, key).filter(r => r.profit > 0);
+    let all = byKey(list, key).filter(r => r.profit > 0);
+    if (S.rankMetric === 'margin') all = all.filter(r => r.n >= MIN_DEALS_FOR_MARGIN);
+    all.sort((a, b) => M.val(b) - M.val(a));
     document.getElementById(cntId).textContent = all.length + ' шт.';
     const expanded = S.expand[key];
     const hidden = all.length - LIMIT;
 
     let rows = (expanded || hidden <= 0) ? all : all.slice(0, LIMIT);
-    const max = Math.max(...all.map(r => r.profit), 1);
+    const max = Math.max(...all.map(M.val), 1);
 
     let html = rows.map((r, i) => {
       const on = S.filter && S.filter.kind === key && S.filter.value === r.key;
       return `<div class="rrow" role="button" tabindex="0" aria-pressed="${on}"
            data-kind="${key}" data-key="${esc(r.key)}"
-           data-t="${esc(r.key)}|${esc(money(r.profit))} прибыли|${r.n} сделок · оборот ${esc(money(r.gross))}">
+           data-t="${esc(r.key)}|${esc(money(r.profit))} прибыли · маржа ${esc(pct(r.gross > 0 ? r.profit / r.gross * 100 : null))}|${r.n} сделок · оборот ${esc(money(r.gross))}">
         <span class="rn">${esc(r.key)}</span>
-        <span class="rt"><i style="width:${Math.max(r.profit / max * 100, 1.5)}%;background:${rampAt(i, rows.length)}"></i></span>
-        <span class="rv">${esc(money(r.profit))}</span></div>`;
+        <span class="rt"><i style="width:${Math.max(M.val(r) / max * 100, 1.5)}%;background:${rampAt(i, rows.length)}"></i></span>
+        <span class="rv">${esc(M.fmt(r))}</span></div>`;
     }).join('');
 
     // «Прочие» — не заглушка, а переключатель: раскрывает оставшиеся строки.
     if (hidden > 0) {
       const rest = all.slice(LIMIT);
       const restProfit = rest.reduce((s, r) => s + r.profit, 0);
+      const restGross = rest.reduce((s, r) => s + r.gross, 0);
       const restDeals = rest.reduce((s, r) => s + r.n, 0);
+      const restVal = S.rankMetric === 'margin'
+        ? (restGross > 0 ? restProfit / restGross * 100 : 0)
+        : (S.rankMetric === 'gross' ? restGross : restProfit);
+      const restLabel = S.rankMetric === 'margin' ? pct(restVal) : money(restVal);
       html += `<div class="rrow more" role="button" tabindex="0" data-toggle="${key}"
            data-t="${expanded ? 'Свернуть список' : 'Показать ещё ' + hidden}|${esc(money(restProfit))} прибыли|${restDeals} сделок">
         <span class="rn">${expanded ? '← Свернуть' : 'Прочие (' + hidden + ') — показать'}</span>
         ${expanded ? '<span></span><span></span>'
-          : `<span class="rt"><i style="width:${Math.max(restProfit / max * 100, 1.5)}%;background:var(--border-lt)"></i></span>
-             <span class="rv">${esc(money(restProfit))}</span>`}</div>`;
+          : `<span class="rt"><i style="width:${Math.max(restVal / max * 100, 1.5)}%;background:var(--border-lt)"></i></span>
+             <span class="rv">${esc(restLabel)}</span>`}</div>`;
     }
 
     document.getElementById(elId).innerHTML = html || '<div class="empty">Нет данных за период</div>';
@@ -746,13 +892,78 @@ function renderRanks() {
   });
 }
 
+/* ---------- сравнение двух периодов ---------- */
+function renderCompare() {
+  if (!S.cmpA) {
+    S.cmpA = PERIODS[Math.max(PERIODS.length - 2, 0)];
+    S.cmpB = PERIODS[PERIODS.length - 1];
+  }
+  const A = agg(scope(S.cmpA)), B = agg(scope(S.cmpB));
+  const payout = per => (S.role === 'rop' ? adTotalFor(per) : adFor(S.role, per));
+  A.payout = A.profit * DATA.commission_rate - payout(S.cmpA);
+  B.payout = B.profit * DATA.commission_rate - payout(S.cmpB);
+
+  // Δ в процентах бессмысленна для доли: маржа сравнивается в пунктах.
+  const row = (label, a, b, fmt, unit) => {
+    const diff = b - a;
+    const rel = (unit === 'pp' || !a) ? null : diff / Math.abs(a) * 100;
+    const cls = Math.abs(diff) < 1e-9 ? 'delta-flat' : (diff > 0 ? 'delta-up' : 'delta-down');
+    const ar = Math.abs(diff) < 1e-9 ? '=' : (diff > 0 ? '↑' : '↓');
+    const d = unit === 'pp' ? Math.abs(diff).toFixed(1).replace('.', ',') + ' п.п.'
+            : unit === 'n'  ? nf.format(Math.abs(Math.round(diff)))
+            : money(Math.abs(diff));
+    return `<tr><td class="name">${label}</td>
+      <td class="num">${fmt(a)}</td><td class="num">${fmt(b)}</td>
+      <td class="num ${cls}">${ar} ${d}${rel !== null ? ' · ' + Math.abs(rel).toFixed(0) + '%' : ''}</td></tr>`;
+  };
+
+  const mgrRows = S.role !== 'rop' ? '' : MANAGERS.map(m => {
+    const pa = scope(S.cmpA).filter(d => d.manager === m).reduce((s, d) => s + (d.profit || 0), 0);
+    const pb = scope(S.cmpB).filter(d => d.manager === m).reduce((s, d) => s + (d.profit || 0), 0);
+    return (pa || pb) ? row(m, pa, pb, money) : '';
+  }).join('');
+
+  document.getElementById('cmpWrap').innerHTML = `
+    <h2 class="sec">Сравнение периодов</h2>
+    <p class="sec-note">Два любых месяца рядом — видно не только «выросло или упало», но и за счёт чего: объёма, качества сделок или количества туристов.</p>
+    <div class="cmp-heads">
+      <div><span class="ctl-lbl">Было</span><div class="seg mini" id="cmpASeg"></div></div>
+      <div><span class="ctl-lbl">Стало</span><div class="seg mini" id="cmpBSeg"></div></div>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Показатель</th>
+        <th class="num">${PERIOD_NAMES[S.cmpA] || S.cmpA}</th>
+        <th class="num">${PERIOD_NAMES[S.cmpB] || S.cmpB}</th>
+        <th class="num">Изменение</th></tr></thead>
+      <tbody>
+        ${row('Оборот', A.gross, B.gross, money)}
+        ${row('Прибыль', A.profit, B.profit, money)}
+        ${row('Маржа', A.margin || 0, B.margin || 0, v => pct(v), 'pp')}
+        ${row('Сделок', A.n, B.n, v => nf.format(v), 'n')}
+        ${row('Туристов', A.pax, B.pax, v => nf.format(v), 'n')}
+        ${row('Средний чек', A.avg, B.avg, money)}
+        ${row(S.role === 'rop' ? 'К выплате' : 'Моя выплата', A.payout, B.payout, money)}
+        ${mgrRows ? `<tr><td class="name" colspan="4" style="color:var(--dim);
+            font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+            text-transform:uppercase;font-weight:400">Прибыль по менеджерам</td></tr>` + mgrRows : ''}
+      </tbody></table></div>`;
+
+  const opts = PERIODS.map(p => ({ v: p, t: PERIOD_NAMES[p] || p }));
+  seg(document.getElementById('cmpASeg'), opts, S.cmpA, v => { S.cmpA = v; render(); });
+  seg(document.getElementById('cmpBSeg'), opts, S.cmpB, v => { S.cmpB = v; render(); });
+}
+
 /* ---------- таблица сделок ---------- */
 function renderDeals() {
   let list = scope(S.period).slice();
   if (S.filter) list = list.filter(d => (d[S.filter.kind] || '—') === S.filter.value);
+  const marginOf = d => (d.profit === null || !d.gross) ? null : d.profit / d.gross * 100;
+  const lowCount = list.filter(d => { const m = marginOf(d); return m !== null && m < MARGIN_LOW; }).length;
+  if (S.onlyLow) list = list.filter(d => { const m = marginOf(d); return m !== null && m < MARGIN_LOW; });
   const k = S.dealSort.key, dir = S.dealSort.dir;
+  const cellVal = (d, key) => key === 'margin' ? marginOf(d) : d[key];
   list.sort((a, b) => {
-    const x = a[k], y = b[k];
+    const x = cellVal(a, k), y = cellVal(b, k);
     if (x === null || x === undefined) return 1;
     if (y === null || y === undefined) return -1;
     return (x > y ? 1 : x < y ? -1 : 0) * dir;
@@ -763,7 +974,7 @@ function renderDeals() {
     ['client', 'Клиент', 0], ['manager', 'Менеджер', 0], ['direction', 'Направление', 0],
     ['operator', 'Оператор', 0], ['pax', 'Чел.', 1], ['depart_at', 'Вылет', 0],
     ['gross', 'Брутто', 1], ['net', 'Нетто', 1], ['profit', 'Прибыль', 1],
-    ['operator_debt', 'Долг оператору', 1]
+    ['margin', 'Маржа', 1], ['operator_debt', 'Долг оператору', 1]
   ];
 
   const KIND = { direction: 'Направление', operator: 'Туроператор' };
@@ -771,10 +982,20 @@ function renderDeals() {
     (S.role === 'rop' ? 'Все сделки' : 'Мои сделки') + ' за ' +
     (S.period === 'all' ? 'май — июль' : (PERIOD_NAMES[S.period] || '').toLowerCase()) +
     ' — ' + list.length + ' шт. Столбцы сортируются, строки в рейтингах выше фильтруют этот список.' +
-    (S.filter ? `<br><button class="chip" id="clearFilter" style="margin-top:10px">
-        <b>${KIND[S.filter.kind]}:</b> ${esc(S.filter.value)} <x>×</x></button>` : '');
+    `<br><span style="display:inline-flex;gap:8px;flex-wrap:wrap;margin-top:10px">` +
+    (S.filter ? `<button class="chip" id="clearFilter">
+        <b>${KIND[S.filter.kind]}:</b> ${esc(S.filter.value)} <x>×</x></button>` : '') +
+    (lowCount || S.onlyLow
+      ? `<button class="chip" id="lowBtn" style="${S.onlyLow ? '' :
+           'background:var(--raised);color:var(--warn);border:1px solid var(--border-lt)'}">
+           ${S.onlyLow ? '<b>Только</b> маржа ниже ' + MARGIN_LOW + '% <x>×</x>'
+                       : '⚠ ' + lowCount + ' сделок с маржой ниже ' + MARGIN_LOW + '%'}</button>`
+      : '') + '</span>';
+
   const cf = document.getElementById('clearFilter');
   if (cf) cf.onclick = () => { S.filter = null; S.dealsAll = false; render(); };
+  const lb = document.getElementById('lowBtn');
+  if (lb) lb.onclick = () => { S.onlyLow = !S.onlyLow; S.dealsAll = false; render(); };
 
   document.getElementById('dealsTbl').innerHTML = `
     <thead><tr>${cols.map(c =>
@@ -789,6 +1010,11 @@ function renderDeals() {
       <td class="num">${money(d.gross)}</td>
       <td class="num">${d.net === null ? '<span style="color:var(--warn)">не указано</span>' : money(d.net)}</td>
       <td class="num" style="color:${d.profit === null ? 'var(--warn)' : 'var(--text)'}">${d.profit === null ? '—' : money(d.profit)}</td>
+      ${(() => { const m = marginOf(d);
+        if (m === null) return '<td class="num low">—</td>';
+        const lo = m < MARGIN_LOW;
+        return `<td class="num ${lo ? 'low lowbg' : ''}">${lo ? '⚠ ' : ''}${pct(m)}</td>`;
+      })()}
       <td class="num" style="color:${d.operator_debt ? 'var(--neg)' : 'var(--dim)'}">${d.operator_debt ? money(d.operator_debt) : '—'}</td>
     </tr>`).join('')}</tbody>`;
 
@@ -836,6 +1062,7 @@ function render() {
   renderAttention();
   renderRop();
   renderRanks();
+  renderCompare();
   renderDeals();
   renderQuality();
 }
