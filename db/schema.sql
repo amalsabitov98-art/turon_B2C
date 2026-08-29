@@ -51,17 +51,29 @@ create table profiles (
   avatar_url   text,
   is_active    boolean     not null default true,
 
-  -- Как этот менеджер записан в колонке «Менеджер» Google-таблицы.
-  -- Заполняется один раз руками; по нему импорт связывает строки с профилем.
-  sheet_alias  text unique,
-
   hired_at     date,
+  -- Дата ухода. Сотрудник никогда не удаляется: его сделки остаются в
+  -- отчётах закрытых периодов. Уход снимает доступ и убирает человека из
+  -- текущих рейтингов, но история продаж не меняется задним числом.
+  left_at      date,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
 
-comment on column profiles.sheet_alias is
-  'Написание ФИО менеджера в Google-таблице (нормализованное: lower+trim). Ключ связи импорта с профилем.';
+-- Написания имени сотрудника в исходной таблице. Их бывает несколько:
+-- в реальном отчёте одна и та же Сарвиноз встречается как «Сарвиноз»,
+-- «сарвиноз» и «SARVINOZ». Отдельная таблица, а не поле в profiles,
+-- потому что псевдонимов у одного человека много и они добавляются
+-- со временем.
+create table profile_aliases (
+  alias      text primary key,          -- нормализованный: lower(trim(...))
+  profile_id uuid not null references profiles(id) on delete cascade
+);
+
+create index profile_aliases_profile_idx on profile_aliases (profile_id);
+
+comment on table profile_aliases is
+  'Написания ФИО менеджера в отчёте. По ним импорт связывает строку с профилем.';
 
 
 -- -----------------------------------------------------------------------------

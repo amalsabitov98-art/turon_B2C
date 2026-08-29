@@ -254,6 +254,9 @@ def main():
                 "period": period,
                 "row": excel_row,
                 "manager": manager,
+                # Как имя записано в самой таблице. Нужно, чтобы связать
+                # профиль сотрудника со всеми его написаниями при импорте.
+                "manager_raw": str(manager_raw).strip(),
                 "client": (str(r[L["client"]]).strip() if r[L["client"]] else None),
                 "pax": int(parse_number(r[L["pax"]]) or 1),
                 "operator": operator,

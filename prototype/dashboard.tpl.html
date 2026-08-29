@@ -229,6 +229,37 @@
   .delta-up { color:var(--pos); } .delta-down { color:var(--neg); }
   .delta-flat { color:var(--dim); }
 
+  /* форма добавления сотрудника */
+  .addrow { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;
+            margin-top:14px; }
+  .fld { display:flex; flex-direction:column; gap:5px; min-width:0; }
+  .fld label { font-family:var(--mono); font-size:10.5px; letter-spacing:.09em;
+               text-transform:uppercase; color:var(--dim); }
+  .fld input { background:var(--surface); border:1px solid var(--border);
+               border-radius:9px; padding:9px 12px; color:var(--text);
+               font:inherit; font-size:13.5px; min-width:190px; }
+  .fld input:focus { outline:none; border-color:var(--accent-dp); }
+  .fld input::placeholder { color:var(--dim); }
+  .btn { font:inherit; font-size:13px; font-weight:600; background:var(--accent);
+         color:#12160B; border:0; border-radius:9px; padding:10px 16px;
+         cursor:pointer; }
+  .btn:hover { background:var(--accent-dp); }
+  .btn:disabled { background:var(--raised2); color:var(--dim); cursor:not-allowed; }
+  .btn.ghost { background:var(--raised); color:var(--muted);
+               border:1px solid var(--border); font-weight:500; padding:7px 12px;
+               font-size:12.5px; }
+  .btn.ghost:hover { color:var(--text); border-color:var(--border-lt); }
+  .btn.ghost.danger:hover { color:var(--neg); border-color:var(--neg); }
+  .btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .form-err { color:var(--neg); font-size:12.5px; margin-top:8px; }
+  tr.off td, tr.off td.name { color:var(--dim); }
+  .pill { display:inline-block; font-family:var(--mono); font-size:10.5px;
+          letter-spacing:.06em; text-transform:uppercase; border-radius:6px;
+          padding:2px 7px; }
+  .pill.on  { background:rgba(190,242,100,.14); color:var(--accent); }
+  .pill.offp { background:var(--raised2); color:var(--dim); }
+  .alias { font-family:var(--mono); font-size:11.5px; color:var(--muted); }
+
   .low { color:var(--warn); }
   .lowbg { box-shadow:inset 3px 0 0 var(--warn); }
 
@@ -312,6 +343,8 @@
   <div class="tw"><table id="dealsTbl"></table></div>
   <button class="btn-more" id="moreBtn" hidden>Показать все</button>
 
+  <div id="teamWrap"></div>
+
   <div id="quality"></div>
 
   <div class="foot">
@@ -338,7 +371,8 @@ const S = {
   filter: null,                                    // {kind, value} — фильтр таблицы сделок
   rankMetric: 'profit',                            // profit | margin | gross
   onlyLow: false,                                  // только низкомаржинальные сделки
-  cmpA: null, cmpB: null                           // периоды для сравнения
+  cmpA: null, cmpB: null,                          // периоды для сравнения
+  team: null                                       // состав команды
 };
 
 // Порог низкой маржи. Ниже него сделка почти не приносит денег при полной
@@ -350,7 +384,48 @@ const MIN_DEALS_FOR_MARGIN = 3;
 
 const PERIOD_NAMES = { '2026-05':'Май', '2026-06':'Июнь', '2026-07':'Июль' };
 const PERIODS = [...new Set(DATA.deals.map(d => d.period))].sort();
-const MANAGERS = [...new Set(DATA.deals.map(d => d.manager))].sort();
+const DATA_MANAGERS = [...new Set(DATA.deals.map(d => d.manager))].sort();
+
+// Все написания имени в исходной таблице. По ним импорт связывает строку
+// с профилем сотрудника; у одного человека их бывает несколько.
+function aliasesOf(name) {
+  return [...new Set(DATA.deals.filter(d => d.manager === name)
+    .map(d => d.manager_raw).filter(Boolean))].sort();
+}
+
+/* ---------- состав команды ----------
+   Состав хранится отдельно от сделок. Убрать сотрудника — значит
+   перестать пускать его в систему и показывать в текущих рейтингах,
+   но НЕ удалить его продажи: иначе отчёт за прошлый месяц изменится
+   задним числом, а расхождения в закрытых периодах — худшее, что может
+   случиться с управленческим отчётом.                                  */
+const TEAM_KEY = 'turon.team.v1';
+
+function baseTeam() {
+  return DATA_MANAGERS.map(n => ({ name: n, aliases: aliasesOf(n), active: true, manual: false }));
+}
+function loadTeam() {
+  const base = baseTeam();
+  try {
+    const raw = localStorage.getItem(TEAM_KEY);
+    if (!raw) return base;
+    const saved = JSON.parse(raw);
+    const map = new Map(base.map(t => [t.name, t]));
+    saved.forEach(t => map.set(t.name, Object.assign({ aliases: [] }, map.get(t.name) || {}, t)));
+    return [...map.values()];
+  } catch (e) {
+    return base;   // приватный режим или заблокированное хранилище — не падаем
+  }
+}
+function saveTeam() {
+  try { localStorage.setItem(TEAM_KEY, JSON.stringify(S.team)); } catch (e) {}
+}
+
+// Кого пускать в систему.
+const loginNames = () => S.team.filter(t => t.active).map(t => t.name);
+// Кого учитывать в статистике: всех, включая ушедших, если у них есть сделки.
+const statNames  = () => [...new Set(S.team.map(t => t.name).concat(DATA_MANAGERS))];
+const isActive   = n => { const t = S.team.find(x => x.name === n); return t ? t.active : true; };
 const TODAY = new Date('2026-08-28');
 
 /* ---------- формат ---------- */
@@ -455,7 +530,7 @@ function seg(el, items, cur, cb) {
 
 function renderControls() {
   seg(document.getElementById('roleSeg'),
-    [{ v: 'rop', t: 'РОП' }].concat(MANAGERS.map(m => ({ v: m, t: m }))),
+    [{ v: 'rop', t: 'РОП' }].concat(loginNames().sort().map(m => ({ v: m, t: m }))),
     S.role, v => { S.role = v; S.dealsAll = false; S.filter = null; S.onlyLow = false; render(); });
 
   seg(document.getElementById('perSeg'),
@@ -620,7 +695,7 @@ function renderRop() {
   if (S.role !== 'rop') { el.innerHTML = renderMyDynamics(); bindSmall(); return; }
 
   const list = scope(S.period);
-  const rows = MANAGERS.map(m => {
+  const rows = statNames().map(m => {
     const own = list.filter(d => d.manager === m);
     const a = agg(own);
     const commission = a.profit * DATA.commission_rate;
@@ -652,7 +727,8 @@ function renderRop() {
       <thead><tr>${cols.map(c =>
         `<th class="s ${c[2] ? 'num' : ''}" data-k="${c[0]}" data-on="${k === c[0] ? 1 : 0}">${c[1]}${k === c[0] ? (dir < 0 ? ' ↓' : ' ↑') : ''}</th>`).join('')}</tr></thead>
       <tbody>${rows.map(r => `<tr class="click" data-m="${esc(r.m)}">
-        <td class="name">${esc(r.m)}</td>
+        <td class="name">${esc(r.m)}${isActive(r.m) ? ''
+          : ' <span style="color:var(--dim);font-weight:400;font-size:11.5px">· не работает</span>'}</td>
         <td class="num">${r.n}</td><td class="num">${r.pax}</td>
         <td class="num">${money(r.gross)}</td>
         <td class="num barcell">${money(r.profit)}
@@ -677,7 +753,7 @@ function renderRop() {
       <div class="card-h"><span class="card-t">Прибыль агентства</span><span class="card-s">май — июль 2026</span></div>
       ${monthChart(DATA.deals)}
     </div>
-    <div class="sm">${MANAGERS.map(m => smallCard(m)).join('')}</div>
+    <div class="sm">${statNames().filter(m => DATA.deals.some(d => d.manager === m)).sort().map(m => smallCard(m)).join('')}</div>
 
     <h2 class="sec">Кто на чём зарабатывает</h2>
     <p class="sec-note">Прибыль по каждой паре «менеджер — направление». Видно специализацию: входящую заявку логично отдать тому, кто это направление уже возит.</p>
@@ -701,7 +777,7 @@ function renderRop() {
 // когда фон становится слишком светлым для белого текста.
 function matrix(list) {
   const dirs = byKey(list, 'direction').filter(r => r.profit > 0).slice(0, 7);
-  const mgrs = MANAGERS.filter(m => list.some(d => d.manager === m));
+  const mgrs = statNames().filter(m => list.some(d => d.manager === m));
   if (!dirs.length || !mgrs.length) return '<div class="empty">Нет данных за период</div>';
 
   // Всё, что не попало в топ-7 направлений, сворачивается в колонку
@@ -773,7 +849,7 @@ function smallCard(m) {
   const tot = vals.reduce((a, b) => a + b, 0);
   // Общий потолок для всех карточек — иначе высоты между менеджерами
   // несравнимы и маленький результат выглядит как большой.
-  const max = Math.max(...MANAGERS.map(mm => Math.max(...PERIODS.map(p =>
+  const max = Math.max(...statNames().map(mm => Math.max(...PERIODS.map(p =>
     DATA.deals.filter(d => d.manager === mm && d.period === p)
       .reduce((s, d) => s + (d.profit || 0), 0)))), 1);
   const best = Math.max(...vals);
@@ -917,7 +993,7 @@ function renderCompare() {
       <td class="num ${cls}">${ar} ${d}${rel !== null ? ' · ' + Math.abs(rel).toFixed(0) + '%' : ''}</td></tr>`;
   };
 
-  const mgrRows = S.role !== 'rop' ? '' : MANAGERS.map(m => {
+  const mgrRows = S.role !== 'rop' ? '' : statNames().sort().map(m => {
     const pa = scope(S.cmpA).filter(d => d.manager === m).reduce((s, d) => s + (d.profit || 0), 0);
     const pb = scope(S.cmpB).filter(d => d.manager === m).reduce((s, d) => s + (d.profit || 0), 0);
     return (pa || pb) ? row(m, pa, pb, money) : '';
@@ -1032,6 +1108,106 @@ function renderDeals() {
   });
 }
 
+/* ---------- команда ---------- */
+function renderTeam() {
+  const el = document.getElementById('teamWrap');
+  if (S.role !== 'rop') { el.innerHTML = ''; return; }
+
+  const stat = n => {
+    const own = DATA.deals.filter(d => d.manager === n);
+    const dates = own.map(d => d.booked_at || d.inquiry_date).filter(Boolean).sort();
+    return {
+      n: own.length,
+      profit: own.reduce((s, d) => s + (d.profit || 0), 0),
+      first: dates[0] || null,
+      last: dates[dates.length - 1] || null
+    };
+  };
+
+  const rows = S.team.slice()
+    .sort((a, b) => (b.active - a.active) || a.name.localeCompare(b.name))
+    .map(t => {
+      const st = stat(t.name);
+      return `<tr class="${t.active ? '' : 'off'}">
+        <td class="name">${esc(t.name)}</td>
+        <td class="alias">${t.aliases.length ? t.aliases.map(esc).join(', ')
+          : '<span style="color:var(--warn)">не задано</span>'}</td>
+        <td class="num">${st.n}</td>
+        <td class="num">${st.n ? esc(money(st.profit)) : '—'}</td>
+        <td>${st.first ? dmy(st.first) + ' — ' + dmy(st.last) : '—'}</td>
+        <td><span class="pill ${t.active ? 'on' : 'offp'}">${t.active ? 'работает' : 'ушёл'}</span></td>
+        <td class="num">
+          <button class="btn ghost" data-toggle-team="${esc(t.name)}">${t.active ? 'Убрать' : 'Вернуть'}</button>
+          ${(t.manual && !st.n) ? `<button class="btn ghost danger" data-del-team="${esc(t.name)}">Удалить</button>` : ''}
+        </td></tr>`;
+    }).join('');
+
+  el.innerHTML = `
+    <h2 class="sec">Команда</h2>
+    <p class="sec-note">Кто есть в системе и под кем можно войти. Сотрудники приходят и уходят, поэтому список живёт отдельно от продаж.</p>
+
+    <div class="flag info"><span class="fi">Как это работает</span><div>
+      <b>«Убрать» не удаляет продажи.</b> Ушедший сотрудник пропадает из списка входов
+      и из тех периодов, где у него нет сделок, но его прошлые продажи остаются в
+      отчётах. Иначе итог за май изменился бы задним числом, а расхождение в
+      закрытом периоде — худшее, что может случиться с отчётом.
+      В рейтинге такой человек помечен «не работает», и войти под ним нельзя.</div></div>
+
+    <div class="tw" style="margin-top:16px"><table>
+      <thead><tr>
+        <th>Сотрудник</th><th>Как записан в таблице</th><th class="num">Сделок</th>
+        <th class="num">Прибыль всего</th><th>Первая — последняя сделка</th><th>Статус</th><th></th>
+      </tr></thead>
+      <tbody>${rows}</tbody></table></div>
+
+    <div class="addrow">
+      <div class="fld"><label for="newName">Имя сотрудника</label>
+        <input id="newName" placeholder="Нодира" autocomplete="off"></div>
+      <div class="fld"><label for="newAlias">Как записан в таблице</label>
+        <input id="newAlias" placeholder="Нодира, NODIRA, нодира" autocomplete="off"></div>
+      <button class="btn" id="addBtn">Добавить</button>
+    </div>
+    <div class="form-err" id="addErr" hidden></div>
+    <p class="sec-note" style="margin-top:10px">Псевдонимы — все написания имени в отчёте, через запятую. Без них импорт не свяжет строки с сотрудником: в вашем файле одна Сарвиноз встречается как «Сарвиноз», «сарвиноз» и «SARVINOZ».</p>`;
+
+  el.querySelectorAll('[data-toggle-team]').forEach(b => {
+    b.onclick = () => {
+      const t = S.team.find(x => x.name === b.dataset.toggleTeam);
+      t.active = !t.active;
+      if (!t.active && S.role === t.name) S.role = 'rop';   // сами себя не запираем
+      saveTeam(); render();
+    };
+  });
+  el.querySelectorAll('[data-del-team]').forEach(b => {
+    b.onclick = () => {
+      S.team = S.team.filter(x => x.name !== b.dataset.delTeam);
+      saveTeam(); render();
+    };
+  });
+
+  const nameEl = document.getElementById('newName');
+  const aliasEl = document.getElementById('newAlias');
+  const errEl = document.getElementById('addErr');
+  const add = () => {
+    const name = nameEl.value.trim();
+    const aliases = aliasEl.value.split(',').map(x => x.trim()).filter(Boolean);
+    const fail = m => { errEl.textContent = m; errEl.hidden = false; };
+    if (!name) return fail('Укажите имя сотрудника.');
+    if (S.team.some(t => t.name.toLowerCase() === name.toLowerCase()))
+      return fail('Такой сотрудник уже есть в списке.');
+    const clash = S.team.find(t => t.aliases.some(a =>
+      aliases.some(x => x.toLowerCase() === a.toLowerCase())));
+    if (clash) return fail(`Псевдоним уже занят: он ведёт на «${clash.name}».`);
+    S.team.push({ name, aliases: aliases.length ? aliases : [name], active: true, manual: true });
+    saveTeam(); render();
+  };
+  document.getElementById('addBtn').onclick = add;
+  [nameEl, aliasEl].forEach(i => {
+    i.onkeydown = e => { if (e.key === 'Enter') add(); };
+    i.oninput = () => { errEl.hidden = true; };
+  });
+}
+
 /* ---------- качество данных ---------- */
 function renderQuality() {
   if (S.role !== 'rop') { document.getElementById('quality').innerHTML = ''; return; }
@@ -1056,6 +1232,8 @@ function renderQuality() {
 
 /* ---------- сборка ---------- */
 function render() {
+  if (!S.team) S.team = loadTeam();
+  if (S.role !== 'rop' && !isActive(S.role)) S.role = 'rop';
   renderControls();
   renderCtx();
   renderKpis();
@@ -1064,6 +1242,7 @@ function render() {
   renderRanks();
   renderCompare();
   renderDeals();
+  renderTeam();
   renderQuality();
 }
 render();

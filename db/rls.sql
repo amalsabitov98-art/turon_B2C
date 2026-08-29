@@ -49,6 +49,7 @@ alter table payments            enable row level security;
 alter table targets             enable row level security;
 alter table dictionaries        enable row level security;
 alter table dictionary_aliases  enable row level security;
+alter table profile_aliases     enable row level security;
 alter table sync_runs           enable row level security;
 alter table sync_errors         enable row level security;
 
@@ -118,6 +119,11 @@ create policy targets_select on targets
 
 create policy dictionaries_select on dictionaries
   for select to authenticated using (true);
+
+-- Псевдонимы сотрудников — служебные данные импорта, нужны только РОПу
+-- на экране «Команда».
+create policy profile_aliases_select on profile_aliases
+  for select to authenticated using (public.is_rop());
 
 create policy dictionary_aliases_select on dictionary_aliases
   for select to authenticated using (true);
