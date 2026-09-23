@@ -1,0 +1,1249 @@
+<title>Пульт продаж Turon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  /* Тёмная тема выбрана намеренно: это прототип продукта, у которого
+     утверждён тёмный интерфейс. Все цвета заданы явно. */
+  :root {
+    --bg:#0A0B09; --surface:#141613; --raised:#1C1F1A; --raised2:#22261D;
+    --border:#272B23; --border-lt:#343A2E;
+    --text:#F4F6F0; --muted:#969C8C; --dim:#6E7466;
+    --accent:#BEF264; --accent-dp:#A3E635;
+    --pos:#4ADE80; --neg:#F87171; --warn:#FBBF24;
+    /* Последовательная шкала одного тона: больше — светлее.
+       Все ступени проверены на контраст к поверхности (≥3:1). */
+    --r1:#5A6B31; --r2:#75903B; --r3:#93B446; --r4:#AFD855; --r5:#C8F76E;
+    --display:"Unbounded","Golos Text",system-ui,sans-serif;
+    --body:"Golos Text",system-ui,-apple-system,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:var(--body);
+         font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1340px; margin:0 auto; padding:0 24px 120px; }
+
+  /* ---------- шапка ---------- */
+  .top { position:sticky; top:0; z-index:40; background:rgba(10,11,9,.93);
+         backdrop-filter:blur(12px); border-bottom:1px solid var(--border);
+         margin:0 0 26px; padding:14px 24px; }
+  .top-in { max-width:1340px; margin:0 auto; display:flex; align-items:center;
+            gap:16px 20px; flex-wrap:wrap; }
+  .brand { font-family:var(--display); font-weight:600; font-size:15px;
+           letter-spacing:-.01em; display:flex; align-items:center; gap:9px; }
+  .brand i { width:9px; height:9px; border-radius:50%; background:var(--accent); display:block; }
+  .brand small { font-family:var(--mono); font-weight:400; font-size:10.5px;
+                 letter-spacing:.12em; text-transform:uppercase; color:var(--dim); }
+  .spacer { flex:1 1 auto; }
+
+  .seg { display:inline-flex; background:var(--surface); border:1px solid var(--border);
+         border-radius:10px; padding:3px; gap:2px; min-width:0; max-width:100%;
+         overflow-x:auto; scrollbar-width:none; }
+  .seg::-webkit-scrollbar { display:none; }
+  .seg button { font:inherit; font-size:13px; color:var(--muted); background:none;
+                border:0; padding:5px 11px; border-radius:7px; cursor:pointer;
+                white-space:nowrap; transition:background .14s,color .14s; }
+  .seg button:hover { color:var(--text); background:var(--raised); }
+  .seg button[aria-pressed="true"] { background:var(--accent); color:#12160B; font-weight:600; }
+  .seg button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+  .ctl-lbl { font-family:var(--mono); font-size:10.5px; letter-spacing:.11em;
+             text-transform:uppercase; color:var(--dim); margin-right:8px; }
+  .ctl { display:flex; align-items:center; min-width:0; max-width:100%; }
+
+  .rate-box { display:flex; align-items:center; gap:6px; background:var(--surface);
+              border:1px solid var(--border); border-radius:10px; padding:5px 10px; }
+  .rate-box input { width:76px; background:none; border:0; color:var(--text);
+                    font-family:var(--mono); font-size:12.5px; text-align:right; }
+  .rate-box input:focus { outline:none; color:var(--accent); }
+  .rate-box span { font-family:var(--mono); font-size:11px; color:var(--dim); }
+
+  .toggle { display:flex; align-items:center; gap:8px; font-size:12.5px;
+            color:var(--muted); cursor:pointer; user-select:none; }
+  .toggle input { appearance:none; width:34px; height:19px; border-radius:10px;
+                  background:var(--raised2); border:1px solid var(--border-lt);
+                  position:relative; cursor:pointer; transition:background .16s; }
+  .toggle input::after { content:""; position:absolute; top:2px; left:2px; width:13px;
+                         height:13px; border-radius:50%; background:var(--dim);
+                         transition:transform .16s,background .16s; }
+  .toggle input:checked { background:rgba(190,242,100,.22); border-color:var(--accent-dp); }
+  .toggle input:checked::after { transform:translateX(15px); background:var(--accent); }
+  .toggle input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+  /* ---------- сетка ---------- */
+  /* Отступ под липкую шапку, иначе заголовок уезжает под неё
+     при переходе по ссылке или после клика в рейтинге. */
+  h2.sec { font-family:var(--display); font-weight:600; font-size:17px;
+           letter-spacing:-.015em; margin:38px 0 4px; scroll-margin-top:110px; }
+  .sec-note { scroll-margin-top:110px; }
+  .sec-note { font-size:13px; color:var(--dim); margin:0 0 16px; max-width:74ch; }
+
+  .grid { display:grid; gap:14px; }
+  .g4 { grid-template-columns:repeat(auto-fit,minmax(196px,1fr)); }
+  .g2 { grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); }
+
+  .card { background:var(--surface); border:1px solid var(--border);
+          border-radius:16px; padding:18px 20px 20px; min-width:0; }
+  .card-h { display:flex; justify-content:space-between; align-items:baseline;
+            gap:12px; margin-bottom:14px; }
+  .card-t { font-weight:600; font-size:14.5px; }
+  .card-s { font-family:var(--mono); font-size:10.5px; letter-spacing:.09em;
+            text-transform:uppercase; color:var(--dim); }
+
+  /* ---------- KPI ---------- */
+  .kpi .k-l { font-size:13px; color:var(--muted); margin-bottom:9px; }
+  .kpi .k-v { font-family:var(--display); font-weight:500; font-size:29px;
+              letter-spacing:-.03em; line-height:1.05; font-variant-numeric:tabular-nums; }
+  .kpi .k-s { margin-top:8px; font-size:12.5px; color:var(--dim);
+              font-variant-numeric:tabular-nums; }
+  /* Две величины в одной карточке. Каждая подписана отдельно —
+     иначе «105 / 343» читается как дробь, а не как два числа. */
+  .k-dual { display:flex; gap:26px; }
+  .k-dual > span { display:flex; flex-direction:column; }
+  .k-dual b { font-family:var(--display); font-weight:500; font-size:29px;
+              letter-spacing:-.03em; line-height:1.05;
+              font-variant-numeric:tabular-nums; }
+  .k-dual s { text-decoration:none; font-family:var(--mono); font-size:10.5px;
+              letter-spacing:.09em; text-transform:uppercase; color:var(--dim);
+              margin-top:5px; }
+  .kpi.lead { background:linear-gradient(152deg,rgba(190,242,100,.15),rgba(190,242,100,.03) 64%);
+              border-color:rgba(190,242,100,.3); }
+  .kpi.lead .k-v { color:var(--accent); }
+  .up { color:var(--pos); } .down { color:var(--neg); }
+
+  /* ---------- таблицы ---------- */
+  .tw { overflow-x:auto; border:1px solid var(--border); border-radius:16px;
+        background:var(--surface); }
+  table { border-collapse:collapse; width:100%; font-size:13.5px;
+          font-variant-numeric:tabular-nums; }
+  th { text-align:left; font-family:var(--mono); font-weight:400; font-size:10.5px;
+       letter-spacing:.08em; text-transform:uppercase; color:var(--dim);
+       padding:12px 14px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  th.s { cursor:pointer; user-select:none; }
+  th.s:hover { color:var(--muted); }
+  th.s[data-on="1"] { color:var(--accent); }
+  td { padding:11px 14px; border-bottom:1px solid var(--border); color:var(--muted);
+       white-space:nowrap; }
+  tbody tr:last-child td { border-bottom:none; }
+  tbody tr.click { cursor:pointer; }
+  tbody tr:hover td { background:var(--raised); }
+  td.name { color:var(--text); font-weight:500; }
+  .num { text-align:right; }
+  .barcell { position:relative; min-width:132px; }
+  .barcell .bg { position:absolute; left:14px; right:14px; bottom:7px; height:3px;
+                 border-radius:2px; background:var(--border-lt); }
+  .barcell .fg { position:absolute; left:14px; bottom:7px; height:3px;
+                 border-radius:2px; background:var(--accent); }
+
+  /* ---------- чарты ---------- */
+  /* Столбцы построены на HTML, а не на SVG: масштабирование svg
+     с preserveAspectRatio="none" растягивает подписи по горизонтали. */
+  .cols { display:flex; align-items:flex-end; gap:10px; height:186px;
+          position:relative; padding-top:22px; }
+  .cols .gl { position:absolute; left:0; right:0; height:1px;
+              background:var(--border); pointer-events:none; }
+  .col { flex:1 1 0; display:flex; flex-direction:column; justify-content:flex-end;
+         align-items:center; height:100%; cursor:pointer; min-width:0;
+         position:relative; z-index:1; }
+  .col .cv { font-family:var(--mono); font-size:11px; color:var(--muted);
+             margin-bottom:6px; white-space:nowrap; }
+  .col .cb { width:100%; max-width:110px; border-radius:6px 6px 3px 3px;
+             transition:filter .14s; }
+  .col:hover .cb { filter:brightness(1.18); }
+  .col .cl { font-family:var(--mono); font-size:10.5px; color:var(--dim);
+             margin-top:9px; }
+
+  .mini { display:flex; align-items:flex-end; gap:5px; height:54px; }
+  .mini .mb2 { flex:1 1 0; border-radius:4px 4px 2px 2px; cursor:pointer;
+               transition:filter .14s; min-height:2px; }
+  .mini .mb2:hover { filter:brightness(1.2); }
+
+  .rank { display:flex; flex-direction:column; gap:9px; }
+  .rrow { display:grid; grid-template-columns:minmax(112px,176px) 1fr minmax(74px,auto);
+          gap:12px; align-items:center; font-size:13px; }
+  .rrow .rn { color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rrow .rt { height:20px; border-radius:5px; background:var(--raised2); overflow:hidden; }
+  .rrow .rt i { display:block; height:100%; border-radius:5px; }
+  .rrow .rv { font-family:var(--mono); font-size:12px; color:var(--muted); text-align:right; }
+  .rrow { cursor:pointer; border-radius:7px; padding:2px 4px; margin:0 -4px;
+          transition:background .13s; }
+  .rrow:hover { background:var(--raised); }
+  .rrow:hover .rn { color:var(--accent); }
+  .rrow:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  .rrow[aria-pressed="true"] .rn { color:var(--accent); font-weight:600; }
+  .rrow.more .rn { color:var(--dim); }
+  .rrow.more:hover .rn { color:var(--accent); }
+
+  .chip { display:inline-flex; align-items:center; gap:8px; background:var(--accent);
+          color:#12160B; border:0; border-radius:9px; padding:6px 10px 6px 12px;
+          font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;
+          margin:0 0 12px; }
+  .chip b { font-weight:400; opacity:.7; }
+  .chip x { font-style:normal; font-size:14px; line-height:1; opacity:.75; }
+  .chip:hover x { opacity:1; }
+  .chip:focus-visible { outline:2px solid var(--text); outline-offset:2px; }
+
+  .sm { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
+  .smc { background:var(--raised); border:1px solid var(--border); border-radius:12px;
+         padding:12px 13px 10px; }
+  .smc .smn { font-size:13px; font-weight:500; margin-bottom:2px; }
+  .smc .smv { font-family:var(--mono); font-size:11px; color:var(--dim); margin-bottom:9px; }
+
+  /* ---------- внимание ---------- */
+  .att { display:flex; flex-direction:column; gap:0; }
+  .att-i { display:grid; grid-template-columns:auto 1fr auto; gap:12px;
+           align-items:center; padding:11px 0; border-bottom:1px solid var(--border); }
+  .att-i:last-child { border-bottom:none; }
+  .att-i .ic { width:26px; height:26px; border-radius:8px; display:grid;
+               place-items:center; font-size:13px; font-weight:700; }
+  .ic.r { background:rgba(248,113,113,.14); color:var(--neg); }
+  .ic.w { background:rgba(251,191,36,.14); color:var(--warn); }
+  .ic.g { background:rgba(190,242,100,.14); color:var(--accent); }
+  .att-i .tx { font-size:13.5px; min-width:0; }
+  .att-i .tx b { color:var(--text); font-weight:500; }
+  .att-i .tx s { display:block; text-decoration:none; font-size:12px; color:var(--dim); }
+  .att-i .amt { font-family:var(--mono); font-size:13px; }
+
+  .empty { color:var(--dim); font-size:13px; padding:14px 0; }
+
+  /* переключатель метрики внутри карточки */
+  .seg.mini button { font-size:11.5px; padding:4px 9px; }
+
+  /* матрица менеджер × направление */
+  .mx { width:100%; border-collapse:separate; border-spacing:3px; font-size:12.5px;
+        font-variant-numeric:tabular-nums; }
+  .mx th { padding:6px 8px; font-family:var(--mono); font-size:10px;
+           letter-spacing:.06em; text-transform:uppercase; color:var(--dim);
+           border:0; white-space:nowrap; text-align:right; font-weight:400; }
+  .mx th.rowh { text-align:left; color:var(--text); font-family:var(--body);
+                font-size:13px; text-transform:none; letter-spacing:0;
+                font-weight:500; }
+  .mx td { padding:9px 10px; border:0; border-radius:7px; text-align:right;
+           white-space:nowrap; }
+  .mx td.zero { background:var(--raised); color:var(--dim); }
+
+  /* таблица сравнения */
+  .cmp-heads { display:flex; gap:22px; flex-wrap:wrap; margin-bottom:16px; }
+  .cmp-heads > div { display:flex; align-items:center; gap:9px; }
+  .delta-up { color:var(--pos); } .delta-down { color:var(--neg); }
+  .delta-flat { color:var(--dim); }
+
+  /* форма добавления сотрудника */
+  .addrow { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;
+            margin-top:14px; }
+  .fld { display:flex; flex-direction:column; gap:5px; min-width:0; }
+  .fld label { font-family:var(--mono); font-size:10.5px; letter-spacing:.09em;
+               text-transform:uppercase; color:var(--dim); }
+  .fld input { background:var(--surface); border:1px solid var(--border);
+               border-radius:9px; padding:9px 12px; color:var(--text);
+               font:inherit; font-size:13.5px; min-width:190px; }
+  .fld input:focus { outline:none; border-color:var(--accent-dp); }
+  .fld input::placeholder { color:var(--dim); }
+  .btn { font:inherit; font-size:13px; font-weight:600; background:var(--accent);
+         color:#12160B; border:0; border-radius:9px; padding:10px 16px;
+         cursor:pointer; }
+  .btn:hover { background:var(--accent-dp); }
+  .btn:disabled { background:var(--raised2); color:var(--dim); cursor:not-allowed; }
+  .btn.ghost { background:var(--raised); color:var(--muted);
+               border:1px solid var(--border); font-weight:500; padding:7px 12px;
+               font-size:12.5px; }
+  .btn.ghost:hover { color:var(--text); border-color:var(--border-lt); }
+  .btn.ghost.danger:hover { color:var(--neg); border-color:var(--neg); }
+  .btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .form-err { color:var(--neg); font-size:12.5px; margin-top:8px; }
+  tr.off td, tr.off td.name { color:var(--dim); }
+  .pill { display:inline-block; font-family:var(--mono); font-size:10.5px;
+          letter-spacing:.06em; text-transform:uppercase; border-radius:6px;
+          padding:2px 7px; }
+  .pill.on  { background:rgba(190,242,100,.14); color:var(--accent); }
+  .pill.offp { background:var(--raised2); color:var(--dim); }
+  .alias { font-family:var(--mono); font-size:11.5px; color:var(--muted); }
+
+  .low { color:var(--warn); }
+  .lowbg { box-shadow:inset 3px 0 0 var(--warn); }
+
+  /* ---------- плашки ---------- */
+  .flag { display:flex; gap:12px; align-items:flex-start; border-radius:14px;
+          padding:14px 16px; font-size:13.5px; margin:16px 0 0; }
+  .flag.warn { background:rgba(251,191,36,.07); border:1px solid rgba(251,191,36,.24); }
+  .flag.info { background:rgba(190,242,100,.06); border:1px solid rgba(190,242,100,.2); }
+  .flag b { color:var(--text); }
+  .flag .fi { font-family:var(--mono); font-size:11px; letter-spacing:.08em;
+              text-transform:uppercase; flex:0 0 auto; padding-top:2px; }
+  .flag.warn .fi { color:var(--warn); }
+  .flag.info .fi { color:var(--accent-dp); }
+  .flag ul { margin:7px 0 0; padding-left:18px; color:var(--muted); }
+  .flag li { margin-bottom:3px; }
+
+  /* ---------- подсказка ---------- */
+  #tip { position:fixed; z-index:90; pointer-events:none; opacity:0;
+         transition:opacity .12s; background:var(--raised2);
+         border:1px solid var(--border-lt); border-radius:10px; padding:9px 12px;
+         font-size:12.5px; box-shadow:0 12px 32px rgba(0,0,0,.55); max-width:260px; }
+  #tip b { display:block; color:var(--text); font-weight:600; margin-bottom:3px; }
+  #tip span { color:var(--muted); font-family:var(--mono); font-size:11.5px; }
+
+  .foot { margin-top:56px; padding-top:22px; border-top:1px solid var(--border);
+          font-family:var(--mono); font-size:11px; color:var(--dim);
+          display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+
+  .btn-more { font:inherit; font-size:12.5px; color:var(--muted); background:var(--raised);
+              border:1px solid var(--border); border-radius:9px; padding:8px 14px;
+              cursor:pointer; margin-top:12px; }
+  .btn-more:hover { color:var(--text); border-color:var(--border-lt); }
+
+  @media (max-width:720px){
+    .wrap{ padding:0 14px 80px; } .top{ padding:12px 14px; }
+    .ctl{ width:100%; } .top-in{ gap:10px; }
+    .kpi .k-v{ font-size:25px; }
+  }
+  @media (prefers-reduced-motion:reduce){ *{ transition:none!important; } }
+</style>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand"><i></i>Пульт продаж<small>Turon</small></div>
+    <div class="spacer"></div>
+    <div class="ctl"><span class="ctl-lbl">Вход</span><div class="seg" id="roleSeg"></div></div>
+    <div class="ctl"><span class="ctl-lbl">Период</span><div class="seg" id="perSeg"></div></div>
+    <div class="ctl"><span class="ctl-lbl">Валюта</span><div class="seg" id="curSeg"></div></div>
+    <div class="rate-box" id="rateBox"><span>1 $ =</span><input id="rate" type="number" min="1" step="10" value="12800"><span>сум</span></div>
+    <label class="toggle"><input type="checkbox" id="mask">Скрыть имена клиентов</label>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="ctx"></div>
+
+  <div class="grid g4" id="kpis"></div>
+
+  <div id="attWrap"></div>
+
+  <div id="ropOnly"></div>
+
+  <h2 class="sec">Куда идут продажи</h2>
+  <p class="sec-note" id="rankNote"></p>
+  <div class="ctl" style="margin:0 0 16px"><span class="ctl-lbl">Считать по</span><div class="seg mini" id="metricSeg"></div></div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="card-h"><span class="card-t">Направления</span><span class="card-s" id="dirCnt"></span></div>
+      <div class="rank" id="dirs"></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><span class="card-t">Туроператоры</span><span class="card-s" id="opCnt"></span></div>
+      <div class="rank" id="ops"></div>
+    </div>
+  </div>
+
+  <div id="cmpWrap"></div>
+
+  <h2 class="sec">Сделки</h2>
+  <p class="sec-note" id="dealsNote"></p>
+  <div class="tw"><table id="dealsTbl"></table></div>
+  <button class="btn-more" id="moreBtn" hidden>Показать все</button>
+
+  <div id="teamWrap"></div>
+
+  <div id="quality"></div>
+
+  <div class="foot">
+    <span>Источник: ежемесячный отчёт в Excel · май–июль 2026 · 105 сделок</span>
+    <span>Прототип на реальных данных</span>
+  </div>
+</div>
+
+<div id="tip"></div>
+
+<script>
+const DATA = {"generated_at":"2026-09-23T11:50:05","source":"C:\\Users\\User\\Downloads\\Отчеты (1).xlsx","commission_rate":0.5,"ad_spend_split":8,"ad_spend":{"2026-05":950.0,"2026-06":278.0,"2026-07":786.0},"deals":[{"period":"2026-05","row":2,"manager":"Азиза","manager_raw":"Азиза","client":"Равшан ака","pax":7,"operator":"FlyKhiva","direction":"Египет · Шарм-эль-Шейх","hotel":"Rixos seagate","booked_at":null,"depart_at":"2026-05-12","return_at":"2026-05-19","gross":9600.0,"net":9300.0,"profit":300.0,"gaps":[],"received":9600.0,"client_debt":0.0,"paid_operator":9300.0,"operator_debt":0.0},{"period":"2026-05","row":3,"manager":"Азиза","manager_raw":"Азиза","client":"Каримов Фаррух","pax":6,"operator":"Kompas","direction":"Египет · Шарм-эль-Шейх","hotel":"Sultan gardens","booked_at":null,"depart_at":"2023-05-16","return_at":"2026-05-23","gross":4700.0,"net":4585.0,"profit":115.0,"gaps":[],"received":4700.0,"client_debt":0.0,"paid_operator":4585.0,"operator_debt":0.0},{"period":"2026-05","row":4,"manager":"Азиза","manager_raw":"Азиза","client":"Иброхим","pax":2,"operator":"Fun & Sun","direction":"Вьетнам","hotel":"Lugano","booked_at":null,"depart_at":"2026-05-30","return_at":"2026-06-03","gross":2170.0,"net":2047.0,"profit":123.0,"gaps":[],"received":2170.0,"client_debt":0.0,"paid_operator":2047.0,"operator_debt":0.0},{"period":"2026-05","row":5,"manager":"Азиза","manager_raw":"Азиза","client":"Давлетов Сардор","pax":5,"operator":"Kompas","direction":"Египет · Шарм-эль-Шейх","hotel":"Sunrise Diamond","booked_at":null,"depart_at":"2026-06-05","return_at":"2026-05-12","gross":4700.0,"net":4548.5,"profit":151.5,"gaps":[],"received":4700.0,"client_debt":0.0,"paid_operator":4548.5,"operator_debt":0.0},{"period":"2026-05","row":6,"manager":"Азиза","manager_raw":"Азиза","client":"Шоназаров Тимур","pax":2,"operator":"FlyKhiva","direction":"Египет · Шарм-эль-Шейх","hotel":"Alcazar","booked_at":null,"depart_at":"2026-05-16","return_at":"2026-05-23","gross":2600.0,"net":2390.0,"profit":210.0,"gaps":[],"received":2600.0,"client_debt":0.0,"paid_operator":2390.0,"operator_debt":0.0},{"period":"2026-05","row":7,"manager":"Азиза","manager_raw":"Азиза","client":"Мавжуда опа","pax":2,"operator":"Asialuxe","direction":"Европа · Чехия","hotel":"Imperial","booked_at":null,"depart_at":"2026-06-13","return_at":"2026-06-27","gross":3770.0,"net":3585.0,"profit":185.0,"gaps":[],"received":3770.0,"client_debt":0.0,"paid_operator":3585.0,"operator_debt":0.0},{"period":"2026-05","row":8,"manager":"Азиза","manager_raw":"Азиза","client":"Шохрух Абдурахманов","pax":5,"operator":"Prestige","direction":"Китай","hotel":"Crowne plaza","booked_at":null,"depart_at":"2026-06-01","return_at":"2026-06-09","gross":7050.0,"net":6640.0,"profit":410.0,"gaps":[],"received":7050.0,"client_debt":0.0,"paid_operator":6640.0,"operator_debt":0.0},{"period":"2026-05","row":9,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Хабибулла Юлдушев","pax":4,"operator":"EasyBooking","direction":"Грузия","hotel":"Borjomi likani","booked_at":null,"depart_at":"2026-05-26","return_at":"2026-06-05","gross":8200.0,"net":6575.0,"profit":1625.0,"gaps":[],"received":8200.0,"client_debt":0.0,"paid_operator":6575.0,"operator_debt":0.0},{"period":"2026-05","row":10,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Дилноза Муминова","pax":2,"operator":"Индивидуальный","direction":"Турция","hotel":"River Hotel","booked_at":null,"depart_at":"2026-06-07","return_at":"2026-06-14","gross":1707.0,"net":1588.0,"profit":119.0,"gaps":[],"received":1707.0,"client_debt":0.0,"paid_operator":1588.0,"operator_debt":0.0},{"period":"2026-05","row":11,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Шерзод Ахмедов","pax":4,"operator":"Prestige","direction":"Вьетнам","hotel":"Marriot","booked_at":null,"depart_at":"2026-07-14","return_at":"2026-07-22","gross":5400.0,"net":5120.7,"profit":279.3,"gaps":[],"received":5400.0,"client_debt":0.0,"paid_operator":5120.7,"operator_debt":0.0},{"period":"2026-05","row":12,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Каримов Шохрух","pax":6,"operator":"Pegas","direction":"Вьетнам","hotel":"Aquamarine","booked_at":null,"depart_at":"2026-05-21","return_at":"2026-05-29","gross":7100.0,"net":6683.0,"profit":417.0,"gaps":[],"received":7100.0,"client_debt":0.0,"paid_operator":6683.0,"operator_debt":0.0},{"period":"2026-05","row":13,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Нематов Акмал","pax":6,"operator":"Crystal Bay","direction":"Вьетнам","hotel":"Regalia Gold","booked_at":null,"depart_at":"2026-06-12","return_at":"2026-06-19","gross":4840.0,"net":4679.0,"profit":161.0,"gaps":[],"received":4840.0,"client_debt":0.0,"paid_operator":4679.0,"operator_debt":0.0},{"period":"2026-05","row":14,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Абдуваситова Шохсанам","pax":3,"operator":"Turon","direction":"Грузия · Батуми","hotel":"Group","booked_at":null,"depart_at":"2026-07-31","return_at":"2026-08-07","gross":2760.0,"net":2610.0,"profit":150.0,"gaps":[],"received":2760.0,"client_debt":0.0,"paid_operator":2610.0,"operator_debt":0.0},{"period":"2026-05","row":15,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Сайдазизов Хикматилла","pax":2,"operator":"Turon","direction":"Грузия · Батуми","hotel":"Group","booked_at":null,"depart_at":"2026-06-19","return_at":"2026-06-26","gross":1840.0,"net":1750.0,"profit":90.0,"gaps":[],"received":1840.0,"client_debt":0.0,"paid_operator":600.0,"operator_debt":1150.0},{"period":"2026-05","row":16,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Самир Халилов","pax":2,"operator":"Kompas","direction":"Таиланд","hotel":"Patong resort","booked_at":null,"depart_at":"2026-05-28","return_at":"2026-06-05","gross":1800.0,"net":1650.0,"profit":150.0,"gaps":[],"received":1800.0,"client_debt":0.0,"paid_operator":1650.0,"operator_debt":0.0},{"period":"2026-05","row":17,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Мухаммедов Гайрат","pax":7,"operator":"Asialuxe","direction":"Европа · Чехия","hotel":"Crystal Palace","booked_at":null,"depart_at":"2026-07-04","return_at":"2026-07-25","gross":27600.0,"net":26036.0,"profit":1564.0,"gaps":[],"received":27600.0,"client_debt":0.0,"paid_operator":26036.0,"operator_debt":0.0},{"period":"2026-05","row":18,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Мирфайхиев Уткир","pax":2,"operator":"VIPTurkey","direction":"Турция","hotel":"Group","booked_at":null,"depart_at":"2026-06-08","return_at":"2026-06-15","gross":1500.0,"net":1430.0,"profit":70.0,"gaps":[],"received":1500.0,"client_debt":0.0,"paid_operator":1430.0,"operator_debt":0.0},{"period":"2026-05","row":19,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Арипова Умида","pax":3,"operator":"EasyBooking","direction":"Египет · Шарм-эль-Шейх","hotel":"Amwaj","booked_at":null,"depart_at":"2026-05-29","return_at":"2026-06-05","gross":2150.0,"net":2080.0,"profit":70.0,"gaps":[],"received":2150.0,"client_debt":0.0,"paid_operator":2080.0,"operator_debt":0.0},{"period":"2026-05","row":20,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Каршибоев Жахонгир","pax":3,"operator":"Индивидуальный","direction":"Турция","hotel":"River Hotel","booked_at":null,"depart_at":"2026-06-13","return_at":"2026-06-18","gross":1970.0,"net":1786.0,"profit":184.0,"gaps":[],"received":1970.0,"client_debt":0.0,"paid_operator":1786.0,"operator_debt":0.0},{"period":"2026-05","row":21,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Шермухаммедов Абдушукур","pax":2,"operator":"Turon","direction":"Грузия · Батуми","hotel":"Group","booked_at":null,"depart_at":"2026-06-19","return_at":"2026-06-26","gross":1800.0,"net":1750.0,"profit":50.0,"gaps":[],"received":1800.0,"client_debt":0.0,"paid_operator":1750.0,"operator_debt":0.0},{"period":"2026-05","row":22,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Бердиев Олламуродов","pax":2,"operator":"Turon","direction":"Грузия · Батуми","hotel":"Group","booked_at":null,"depart_at":"2026-06-26","return_at":"2026-07-03","gross":1850.0,"net":1750.0,"profit":100.0,"gaps":[],"received":1850.0,"client_debt":0.0,"paid_operator":400.0,"operator_debt":1350.0},{"period":"2026-05","row":23,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Маматов Абдумородов","pax":2,"operator":"Turon","direction":"Грузия · Батуми","hotel":"Group","booked_at":null,"depart_at":"2026-06-26","return_at":"2026-07-03","gross":1850.0,"net":1750.0,"profit":100.0,"gaps":[],"received":1850.0,"client_debt":0.0,"paid_operator":450.0,"operator_debt":1300.0},{"period":"2026-05","row":24,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Хамраева Жамила","pax":1,"operator":"Turon","direction":"Грузия · Батуми","hotel":"Group","booked_at":null,"depart_at":"2026-06-12","return_at":"2026-06-19","gross":925.0,"net":875.0,"profit":50.0,"gaps":[],"received":925.0,"client_debt":0.0,"paid_operator":875.0,"operator_debt":0.0},{"period":"2026-05","row":25,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Пулатов Рахматилла","pax":2,"operator":"Turon","direction":"Грузия · Батуми","hotel":"Group","booked_at":null,"depart_at":"2026-06-19","return_at":"2026-06-26","gross":1850.0,"net":1750.0,"profit":100.0,"gaps":[],"received":1850.0,"client_debt":0.0,"paid_operator":309.0,"operator_debt":1441.0},{"period":"2026-05","row":26,"manager":"Абдулкарим","manager_raw":"Абдулкарим","client":"Азимов даврон","pax":4,"operator":"Asialuxe","direction":"Турция","hotel":"Cornelia","booked_at":null,"depart_at":"2026-06-22","return_at":"2026-07-01","gross":6700.0,"net":6056.0,"profit":644.0,"gaps":[],"received":6700.0,"client_debt":0.0,"paid_operator":6700.0,"operator_debt":0},{"period":"2026-05","row":27,"manager":"Абдулкарим","manager_raw":"Абдулкарим","client":"Сулейманов Алавкхан","pax":9,"operator":"Pegas","direction":"Турция","hotel":"Kaya Belek","booked_at":null,"depart_at":"2026-07-04","return_at":"2026-07-09","gross":11300.0,"net":10565.0,"profit":735.0,"gaps":[],"received":11300.0,"client_debt":0.0,"paid_operator":10565.0,"operator_debt":0.0},{"period":"2026-06","row":2,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"ASKAROV AXROR","pax":6,"operator":"Crystal Bay","direction":"Вьетнам","hotel":"Grandvico Ocean Dannag resort","booked_at":"2026-06-02","depart_at":"2026-06-07","return_at":"2026-06-14","gross":4300.0,"net":4095.0,"profit":205.0,"gaps":[],"received":4300.0,"client_debt":0.0,"paid_operator":4095.0,"operator_debt":0.0},{"period":"2026-06","row":3,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"UMAROV MAKSUD","pax":2,"operator":"EasyBooking","direction":"Грузия","hotel":"Group","booked_at":"2026-06-04","depart_at":"2026-06-06","return_at":"2026-06-12","gross":1270.0,"net":1005.0,"profit":265.0,"gaps":[],"received":1270.0,"client_debt":0.0,"paid_operator":1005.0,"operator_debt":0.0},{"period":"2026-06","row":4,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"KODIROV IBROKHIM","pax":2,"operator":"EasyBooking","direction":"Грузия","hotel":"Group","booked_at":"2026-06-09","depart_at":"2026-06-16","return_at":"2026-06-23","gross":1280.0,"net":1060.0,"profit":220.0,"gaps":[],"received":1280.0,"client_debt":0.0,"paid_operator":1060.0,"operator_debt":0.0},{"period":"2026-06","row":5,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"KHUSNITDINOVA GUZALIYA","pax":2,"operator":"Turon","direction":"Грузия · Батуми","hotel":"Group","booked_at":"2026-06-03","depart_at":"2026-06-26","return_at":"2026-07-03","gross":1850.0,"net":1750.0,"profit":100.0,"gaps":[],"received":1850.0,"client_debt":0.0,"paid_operator":1750.0,"operator_debt":0.0},{"period":"2026-06","row":6,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"ARTIKOV MARUFJON","pax":6,"operator":"Fun & Sun","direction":"Египет · Шарм-эль-Шейх","hotel":"Rixos seagate","booked_at":"2026-06-06","depart_at":"2026-07-08","return_at":"2026-07-15","gross":8500.0,"net":7986.0,"profit":514.0,"gaps":[],"received":8500.0,"client_debt":0.0,"paid_operator":2548.9,"operator_debt":5437.1},{"period":"2026-06","row":7,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"MURATOVA AYKARAM","pax":1,"operator":"Turon","direction":"Грузия · Батуми","hotel":"Group","booked_at":"2026-06-10","depart_at":"2026-06-19","return_at":"2026-06-26","gross":1095.0,"net":1045.0,"profit":50.0,"gaps":[],"received":1095.0,"client_debt":0.0,"paid_operator":1045.0,"operator_debt":0.0},{"period":"2026-06","row":8,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"RAXIM BEKZOD","pax":4,"operator":"Turon","direction":"Грузия · Батуми","hotel":"Group","booked_at":"2026-06-11","depart_at":"2026-07-10","return_at":"2026-07-17","gross":3880.0,"net":3680.0,"profit":200.0,"gaps":[],"received":3880.0,"client_debt":0.0,"paid_operator":3680.0,"operator_debt":0.0},{"period":"2026-06","row":9,"manager":"Абдулкарим","manager_raw":"Абдулкарим","client":"ZIYOTOV SALOKHIDDIN","pax":2,"operator":"Ratehawk","direction":"Россия","hotel":"Pushka Inn","booked_at":"2026-06-04","depart_at":"2026-06-08","return_at":"2026-06-13","gross":3620.0,"net":3347.0,"profit":273.0,"gaps":[],"received":3620.0,"client_debt":0.0,"paid_operator":3347.0,"operator_debt":0.0},{"period":"2026-06","row":10,"manager":"Азиза","manager_raw":"Азиза","client":"TOJIBAEV ULUGBEK","pax":2,"operator":"EasyBooking","direction":"Египет · Шарм-эль-Шейх","hotel":"Club reef","booked_at":"2026-06-19","depart_at":"2026-07-17","return_at":"2026-07-24","gross":1830.0,"net":1650.0,"profit":180.0,"gaps":["в отчёте прибыль 150, брутто−нетто = 180"],"received":1830.0,"client_debt":0.0,"paid_operator":1830.0,"operator_debt":0},{"period":"2026-06","row":11,"manager":"Азиза","manager_raw":"Азиза","client":"KUNANBAEVA NARGIZA","pax":6,"operator":"Velvek","direction":"Турция","hotel":"Group","booked_at":"2026-06-19","depart_at":"2026-08-03","return_at":"2026-08-10","gross":7754.0,"net":7500.0,"profit":254.0,"gaps":[],"received":7754.0,"client_debt":0.0,"paid_operator":7500.0,"operator_debt":0.0},{"period":"2026-06","row":12,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"RAKHMONOVA MDINABONU","pax":4,"operator":"Prestige","direction":"Вьетнам","hotel":"Lugano resort","booked_at":"2026-06-19","depart_at":"2026-07-14","return_at":"2026-07-22","gross":5750.0,"net":5593.0,"profit":157.0,"gaps":[],"received":5750.0,"client_debt":0.0,"paid_operator":1700.0,"operator_debt":3893.0},{"period":"2026-06","row":13,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"ARIPDJANOV KHIKMATJON","pax":2,"operator":"Pegas","direction":"Вьетнам","hotel":"Muong toung resort","booked_at":"2026-06-20","depart_at":"2026-07-05","return_at":"2026-07-12","gross":1570.0,"net":1470.0,"profit":100.0,"gaps":[],"received":1570.0,"client_debt":0.0,"paid_operator":1470.0,"operator_debt":0.0},{"period":"2026-06","row":14,"manager":"Абдулкарим","manager_raw":"Абдулкарим","client":"KENJAAKHUNOV YULDASH","pax":2,"operator":"EasyBooking","direction":"Грузия","hotel":"Orbi beach Tower","booked_at":"2026-06-21","depart_at":"2026-07-07","return_at":"2026-07-21","gross":1600.0,"net":1498.0,"profit":102.0,"gaps":[],"received":1600.0,"client_debt":0.0,"paid_operator":1498.0,"operator_debt":0.0},{"period":"2026-06","row":15,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"ABDUQAYUMOV ABDURAHIM","pax":1,"operator":"Kazunion","direction":"Грузия","hotel":"Batumi View Luxury","booked_at":"2026-06-21","depart_at":"2026-06-27","return_at":"2026-07-04","gross":1340.0,"net":1002.0,"profit":338.0,"gaps":[],"received":1340.0,"client_debt":0.0,"paid_operator":1002.0,"operator_debt":0.0},{"period":"2026-06","row":16,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"BOKIJONOV JAVLONBEK","pax":3,"operator":"Turon","direction":"Грузия · Батуми","hotel":"Group","booked_at":"2026-06-21","depart_at":"2026-07-03","return_at":"2026-07-10","gross":2790.0,"net":2640.0,"profit":150.0,"gaps":[],"received":2790.0,"client_debt":0.0,"paid_operator":2640.0,"operator_debt":0.0},{"period":"2026-06","row":17,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"KHAITOV BAKHODIR","pax":3,"operator":"Prestige","direction":"Вьетнам","hotel":"Marriot Nha Trang","booked_at":"2026-06-23","depart_at":"2026-06-30","return_at":"2026-07-08","gross":4100.0,"net":3889.0,"profit":211.0,"gaps":[],"received":4100.0,"client_debt":0.0,"paid_operator":3889.0,"operator_debt":0.0},{"period":"2026-06","row":18,"manager":"Азиза","manager_raw":"Азиза","client":"TAGIROVA SITORA","pax":3,"operator":"Turon","direction":"Грузия · Батуми","hotel":"Group","booked_at":"2026-06-23","depart_at":"2026-07-03","return_at":"2026-07-10","gross":2540.0,"net":2430.0,"profit":110.0,"gaps":[],"received":2540.0,"client_debt":0.0,"paid_operator":2430.0,"operator_debt":0.0},{"period":"2026-06","row":19,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"SAIDOVA MAFTUNA","pax":6,"operator":"Centrum","direction":"Турция","hotel":"Ring beach","booked_at":"2026-06-24","depart_at":"2026-06-25","return_at":"2026-06-30","gross":4100.0,"net":3971.0,"profit":129.0,"gaps":[],"received":4100.0,"client_debt":0.0,"paid_operator":3197.0,"operator_debt":774.0},{"period":"2026-06","row":20,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"JALILOV AVAZKHON","pax":2,"operator":"Pegas","direction":"Вьетнам","hotel":"Vinpearl hotel","booked_at":"2026-06-22","depart_at":"2026-06-25","return_at":"2026-07-02","gross":1800.0,"net":1667.0,"profit":133.0,"gaps":[],"received":1800.0,"client_debt":0.0,"paid_operator":1667.0,"operator_debt":0.0},{"period":"2026-06","row":21,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"KHUSANOVA SAYYORA","pax":3,"operator":"Turon","direction":"Грузия · Батуми","hotel":"GROUP","booked_at":"2026-06-25","depart_at":"2026-07-03","return_at":"2026-07-10","gross":2590.0,"net":2490.0,"profit":100.0,"gaps":[],"received":2590.0,"client_debt":0.0,"paid_operator":2490.0,"operator_debt":0.0},{"period":"2026-06","row":22,"manager":"Азиза","manager_raw":"Азиза","client":"UTAMURODOV BOBIR","pax":5,"operator":"Kazunion","direction":"ОАЭ","hotel":"Rixos al mairid ras el khaimah","booked_at":"2026-06-30","depart_at":"2026-06-13","return_at":"2026-06-20","gross":7000.0,"net":6700.0,"profit":300.0,"gaps":[],"received":7000.0,"client_debt":0.0,"paid_operator":6690.0,"operator_debt":10.0},{"period":"2026-06","row":23,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"SHAXBOZ","pax":2,"operator":"EasyBooking","direction":"Таиланд","hotel":"Diamond Beach","booked_at":"2026-06-29","depart_at":"2026-07-09","return_at":"2026-07-16","gross":2250.0,"net":2153.0,"profit":97.0,"gaps":[],"received":2250.0,"client_debt":0.0,"paid_operator":2153.0,"operator_debt":0.0},{"period":"2026-06","row":24,"manager":"Сарвиноз","manager_raw":"сарвиноз","client":"ULUGBEK","pax":2,"operator":"EasyBooking","direction":"Таиланд","hotel":"Phuket Graceland","booked_at":"2026-06-29","depart_at":"2026-07-22","return_at":"2026-07-29","gross":1800.0,"net":1621.0,"profit":179.0,"gaps":[],"received":1800.0,"client_debt":0.0,"paid_operator":1621.0,"operator_debt":0.0},{"period":"2026-06","row":25,"manager":"Сарвиноз","manager_raw":"сарвиноз","client":"RASHID","pax":2,"operator":"Pegas","direction":"Турция","hotel":"Armas Gul Beach","booked_at":"2026-06-30","depart_at":"2026-09-03","return_at":"2026-09-10","gross":3000.0,"net":2852.0,"profit":148.0,"gaps":[],"received":3000.0,"client_debt":0.0,"paid_operator":2852.0,"operator_debt":0.0},{"period":"2026-06","row":26,"manager":"Сарвиноз","manager_raw":"сарвиноз","client":"YULDASHEVA GULNORA","pax":2,"operator":"Crystal Bay","direction":"Вьетнам","hotel":"Parosand danang","booked_at":"2026-06-30","depart_at":"2026-06-21","return_at":"2026-06-29","gross":3300.0,"net":3200.0,"profit":100.0,"gaps":[],"received":3300.0,"client_debt":0.0,"paid_operator":3200.0,"operator_debt":0.0},{"period":"2026-06","row":27,"manager":"Сарвиноз","manager_raw":"сарвиноз","client":"ZUFAROVA NASIBA","pax":5,"operator":"Asialuxe","direction":"Турция","hotel":"Aqua Collection","booked_at":"2026-06-30","depart_at":"2026-07-05","return_at":"2026-07-12","gross":8640.0,"net":7841.0,"profit":799.0,"gaps":[],"received":8640.0,"client_debt":0.0,"paid_operator":7830.0,"operator_debt":11.0},{"period":"2026-06","row":28,"manager":"Абдулкарим","manager_raw":"Абдулкарим","client":"TURSUNOV DAVRON","pax":5,"operator":"Kompas","direction":"Таиланд","hotel":"woodlands hotel","booked_at":"2026-06-27","depart_at":"2026-08-08","return_at":"2026-08-15","gross":4400.0,"net":4367.0,"profit":33.0,"gaps":[],"received":4400.0,"client_debt":0.0,"paid_operator":4367.0,"operator_debt":0.0},{"period":"2026-07","row":2,"manager":"Абдулкарим","manager_raw":"ABDULKARIM","client":"ATAMIRZAEVA BARNO","pax":3,"operator":"Batik","direction":"Индонезия · Бали","hotel":"INTER, ADIWANA, SWISS","booked_at":"2026-05-05","depart_at":"2026-07-08","return_at":"2026-08-20","gross":8700.0,"net":8125.0,"profit":575.0,"gaps":[],"received":8700.0,"client_debt":0.0,"paid_operator":8125.0,"operator_debt":0.0},{"period":"2026-07","row":3,"manager":"Абдулкарим","manager_raw":"ABDULKARIM","client":"KULDOSHEV JONIBEK","pax":4,"operator":"Velvek","direction":"Турция","hotel":"GROUP","booked_at":"2026-07-07","depart_at":"2026-08-06","return_at":"2026-08-14","gross":3920.0,"net":3676.0,"profit":244.0,"gaps":[],"received":3920.0,"client_debt":0.0,"paid_operator":1200.0,"operator_debt":2476.0},{"period":"2026-07","row":4,"manager":"Абдулкарим","manager_raw":"ABDULKARIM","client":"KAYUMOV ULUGBEK","pax":2,"operator":"EasyBooking","direction":"Турция","hotel":"MARVIDA SENSES","booked_at":"2026-07-17","depart_at":"2026-08-03","return_at":"2026-08-10","gross":2850.0,"net":2675.0,"profit":175.0,"gaps":[],"received":2850.0,"client_debt":0.0,"paid_operator":2675.0,"operator_debt":0.0},{"period":"2026-07","row":5,"manager":"Абдулкарим","manager_raw":"ABDULKARIM","client":"SULEYMANOVA SHOIRA","pax":3,"operator":"EasyBooking","direction":"Египет · Шарм-эль-Шейх","hotel":"PROMENADA BEACH","booked_at":"2026-07-15","depart_at":"2026-07-29","return_at":"2026-08-05","gross":2950.0,"net":2754.0,"profit":196.0,"gaps":[],"received":2950.0,"client_debt":0.0,"paid_operator":2950.0,"operator_debt":0},{"period":"2026-07","row":6,"manager":"Абдулкарим","manager_raw":"ABDULKARIM","client":"MIRZAEVA MAHFUZA","pax":5,"operator":"Asialuxe","direction":"Турция","hotel":"GURAL TEKIROVA","booked_at":"2026-07-24","depart_at":"2026-07-28","return_at":"2026-08-04","gross":8500.0,"net":8218.0,"profit":282.0,"gaps":[],"received":8500.0,"client_debt":0.0,"paid_operator":8218.0,"operator_debt":0.0},{"period":"2026-07","row":7,"manager":"Абдулкарим","manager_raw":"ABDULKARIM","client":"JURAEV ELDOR","pax":5,"operator":"Turon","direction":"Грузия · Батуми","hotel":"GROUP","booked_at":"2026-07-28","depart_at":"2026-08-14","return_at":"2026-08-21","gross":3980.0,"net":3780.0,"profit":200.0,"gaps":[],"received":3980.0,"client_debt":0.0,"paid_operator":3780.0,"operator_debt":0.0},{"period":"2026-07","row":8,"manager":"Абдулкарим","manager_raw":"ABDULKARIM","client":"AKBAROVA ANORA","pax":3,"operator":"Kompas","direction":"Китай","hotel":"JW MARRIOTT","booked_at":"2026-07-30","depart_at":"2026-08-08","return_at":"2026-08-16","gross":3600.0,"net":3566.0,"profit":34.0,"gaps":[],"received":3600.0,"client_debt":0.0,"paid_operator":3566.0,"operator_debt":0.0},{"period":"2026-07","row":9,"manager":"Азиза","manager_raw":"AZIZA","client":"ARIPOVA KAMOLA","pax":3,"operator":"Selfie","direction":"Египет · Шарм-эль-Шейх","hotel":"INVIDIA","booked_at":"2026-07-11","depart_at":"2026-07-26","return_at":"2026-08-01","gross":2950.0,"net":2720.0,"profit":230.0,"gaps":[],"received":2950.0,"client_debt":0.0,"paid_operator":2720.0,"operator_debt":0.0},{"period":"2026-07","row":10,"manager":"Азиза","manager_raw":"AZIZA","client":"KUTLUMURODOVA NILUFAR","pax":2,"operator":"EasyBooking","direction":"Египет · Шарм-эль-Шейх","hotel":"INDIDIA","booked_at":"2026-07-04","depart_at":"2026-07-18","return_at":"2026-07-25","gross":1780.0,"net":1700.0,"profit":80.0,"gaps":[],"received":1780.0,"client_debt":0.0,"paid_operator":1700.0,"operator_debt":0.0},{"period":"2026-07","row":11,"manager":"Азиза","manager_raw":"AZIZA","client":"SAIFIULLINA ALBINA","pax":3,"operator":"Batik","direction":"Индонезия · Бали","hotel":"THE WESTIN,ADIWANA","booked_at":"2026-07-07","depart_at":"2026-07-28","return_at":"2026-08-10","gross":7200.0,"net":6865.0,"profit":335.0,"gaps":[],"received":7200.0,"client_debt":0.0,"paid_operator":6865.0,"operator_debt":0.0},{"period":"2026-07","row":12,"manager":"Азиза","manager_raw":"AZIZA","client":"NURMATOV ABROL","pax":3,"operator":"Batik","direction":"Малайзия","hotel":"CAMAR RESORT","booked_at":"2026-07-11","depart_at":"2026-07-13","return_at":"2026-07-24","gross":4300.0,"net":4000.0,"profit":300.0,"gaps":[],"received":4300.0,"client_debt":0.0,"paid_operator":4000.0,"operator_debt":0.0},{"period":"2026-07","row":13,"manager":"Азиза","manager_raw":"AZIZA","client":"BAYMATOV BAKHODIR","pax":3,"operator":"Centrum","direction":"Турция","hotel":"OZKAYMAK FALEZ","booked_at":"2026-07-14","depart_at":"2026-07-22","return_at":"2026-07-29","gross":3600.0,"net":3300.0,"profit":300.0,"gaps":[],"received":3600.0,"client_debt":0.0,"paid_operator":3300.0,"operator_debt":0.0},{"period":"2026-07","row":14,"manager":"Азиза","manager_raw":"AZIZA","client":"SALIMOVA MOKHIRA","pax":2,"operator":"Prestige","direction":"Египет · Шарм-эль-Шейх","hotel":"SUNRISE REMAL","booked_at":"2026-07-16","depart_at":"2026-08-13","return_at":"2026-08-22","gross":3600.0,"net":3300.0,"profit":300.0,"gaps":[],"received":3600.0,"client_debt":0.0,"paid_operator":3300.0,"operator_debt":0.0},{"period":"2026-07","row":15,"manager":"Азиза","manager_raw":"AZIZA","client":"MUKHITDINOV KHURSHED","pax":8,"operator":"Fun & Sun","direction":"Египет · Шарм-эль-Шейх","hotel":"SWISSOTEL","booked_at":"2026-07-18","depart_at":"2026-08-09","return_at":"2026-08-16","gross":8800.0,"net":8100.0,"profit":700.0,"gaps":[],"received":8800.0,"client_debt":0.0,"paid_operator":2300.0,"operator_debt":5800.0},{"period":"2026-07","row":16,"manager":"Азиза","manager_raw":"AZIZA","client":"NOZIMA TOJIBOEVA","pax":3,"operator":"Izel","direction":"Китай","hotel":"GROUP","booked_at":"2026-07-18","depart_at":"2026-08-24","return_at":"2026-08-31","gross":4000.0,"net":3680.0,"profit":320.0,"gaps":[],"received":4000.0,"client_debt":0.0,"paid_operator":1100.0,"operator_debt":2580.0},{"period":"2026-07","row":17,"manager":"Азиза","manager_raw":"AZIZA","client":"ABDULAZIZ","pax":2,"operator":"Etihad","direction":"Умра","hotel":"GROUP","booked_at":"2026-07-20","depart_at":"2026-09-24","return_at":"2026-10-03","gross":2900.0,"net":2800.0,"profit":100.0,"gaps":[],"received":800.0,"client_debt":2100.0,"paid_operator":800.0,"operator_debt":2000.0},{"period":"2026-07","row":18,"manager":"Азиза","manager_raw":"AZIZA","client":"NAVBAKHOR ABDULKOSIMOVA","pax":1,"operator":null,"direction":"Визовые услуги","hotel":"-","booked_at":"2026-07-25","depart_at":null,"return_at":null,"gross":200.0,"net":0.0,"profit":200.0,"gaps":[],"received":200.0,"client_debt":0.0,"paid_operator":0.0,"operator_debt":0.0},{"period":"2026-07","row":19,"manager":"Азиза","manager_raw":"AZIZA","client":"KHALILOVA MUKHLISA","pax":5,"operator":"Kazunion","direction":"Турция","hotel":"KAYA PALAZZO","booked_at":"2026-07-27","depart_at":"2026-08-10","return_at":"2026-08-17","gross":7500.0,"net":6900.0,"profit":600.0,"gaps":[],"received":7500.0,"client_debt":0.0,"paid_operator":6900.0,"operator_debt":0.0},{"period":"2026-07","row":20,"manager":"Азиза","manager_raw":"AZIZA","client":"MUKHAMEDOVA GULI","pax":1,"operator":"Turon","direction":"Грузия · Батуми","hotel":"GROUP","booked_at":"2026-07-29","depart_at":"2026-08-21","return_at":"2026-08-28","gross":1145.0,"net":1095.0,"profit":50.0,"gaps":[],"received":1145.0,"client_debt":0.0,"paid_operator":1095.0,"operator_debt":0.0},{"period":"2026-07","row":21,"manager":"Мадина","manager_raw":"MADINA","client":"MOMINBEKOVA DILNOZA","pax":1,"operator":"Turon","direction":"Грузия · Батуми","hotel":"GROUP","booked_at":"2026-07-27","depart_at":"2026-08-07","return_at":"2026-08-14","gross":970.0,"net":920.0,"profit":50.0,"gaps":[],"received":970.0,"client_debt":0.0,"paid_operator":920.0,"operator_debt":0.0},{"period":"2026-07","row":22,"manager":"Муслимжон","manager_raw":"MUSLIMJON","client":"YAKUBOV DILZOD","pax":15,"operator":"Kompas","direction":"Вьетнам","hotel":"COSTA BELLA","booked_at":"2026-07-06","depart_at":"2026-07-08","return_at":"2026-07-16","gross":15280.0,"net":13550.0,"profit":1730.0,"gaps":[],"received":15280.0,"client_debt":0.0,"paid_operator":13550.0,"operator_debt":0.0},{"period":"2026-07","row":23,"manager":"Муслимжон","manager_raw":"MUSLIMJON","client":"SATTAROV YASHNAR","pax":3,"operator":"Turon","direction":"Грузия · Батуми","hotel":"GROUP","booked_at":"2026-07-07","depart_at":"2026-07-24","return_at":"2026-07-31","gross":2790.0,"net":2640.0,"profit":150.0,"gaps":[],"received":2790.0,"client_debt":0.0,"paid_operator":2640.0,"operator_debt":0.0},{"period":"2026-07","row":24,"manager":"Муслимжон","manager_raw":"MUSLIMJON","client":"ABDURASHIDIV ABDULVORIS","pax":2,"operator":"Turon","direction":"Грузия · Батуми","hotel":"GROUP","booked_at":"2026-07-10","depart_at":"2026-07-24","return_at":"2026-07-31","gross":1900.0,"net":1840.0,"profit":60.0,"gaps":[],"received":1900.0,"client_debt":0.0,"paid_operator":1840.0,"operator_debt":0.0},{"period":"2026-07","row":25,"manager":"Муслимжон","manager_raw":"MUSLIMJON","client":"ZARIPOVA QAHRAMON","pax":2,"operator":"Turon","direction":"Грузия · Батуми","hotel":"GROUP","booked_at":"2026-07-12","depart_at":"2026-08-07","return_at":"2026-08-14","gross":1940.0,"net":1840.0,"profit":100.0,"gaps":[],"received":1940.0,"client_debt":0.0,"paid_operator":1528.0,"operator_debt":312.0},{"period":"2026-07","row":26,"manager":"Муслимжон","manager_raw":"MUSLIMJON","client":"YUNUSOVA FARIDA","pax":2,"operator":"Asialuxe","direction":"Турция","hotel":"ARMAS LIFE BELEK","booked_at":"2026-07-13","depart_at":"2026-07-27","return_at":"2026-08-07","gross":3460.0,"net":3246.0,"profit":214.0,"gaps":[],"received":3460.0,"client_debt":0.0,"paid_operator":3246.0,"operator_debt":0.0},{"period":"2026-07","row":27,"manager":"Муслимжон","manager_raw":"MUSLIMJON","client":"KHAITOVA NAIMA","pax":2,"operator":"Prestige","direction":"Вьетнам","hotel":"MARRIOTT","booked_at":"2026-07-13","depart_at":"2026-08-04","return_at":"2026-08-12","gross":5950.0,"net":5763.0,"profit":187.0,"gaps":[],"received":5950.0,"client_debt":0.0,"paid_operator":5763.0,"operator_debt":0.0},{"period":"2026-07","row":28,"manager":"Муслимжон","manager_raw":"MUSLIMJON","client":"SHOABDURAKHIMOVA MANZURA","pax":2,"operator":"Asialuxe","direction":"Турция","hotel":"MARCAN RESORT","booked_at":"2026-07-16","depart_at":"2026-07-21","return_at":"2026-07-28","gross":5640.0,"net":4872.0,"profit":768.0,"gaps":[],"received":5640.0,"client_debt":0.0,"paid_operator":4872.0,"operator_debt":0.0},{"period":"2026-07","row":29,"manager":"Муслимжон","manager_raw":"MUSLIMJON","client":"ZOHIDOV OBIDJON","pax":2,"operator":"Kazunion","direction":"Турция","hotel":"KAYA BELEK","booked_at":"2026-07-22","depart_at":"2026-07-21","return_at":"2026-08-03","gross":3150.0,"net":3026.0,"profit":124.0,"gaps":[],"received":3150.0,"client_debt":0.0,"paid_operator":3026.0,"operator_debt":0.0},{"period":"2026-07","row":30,"manager":"Муслимжон","manager_raw":"MUSLIMJON","client":"MUKHITDINOV ABBOSBEK","pax":14,"operator":"Kazunion","direction":"Турция","hotel":"KAYA SIDE","booked_at":"2026-07-29","depart_at":"2026-08-17","return_at":"2026-08-24","gross":16400.0,"net":15870.0,"profit":530.0,"gaps":[],"received":16400.0,"client_debt":0.0,"paid_operator":15780.0,"operator_debt":90.0},{"period":"2026-07","row":31,"manager":"Муслимжон","manager_raw":"MUSLIMJON","client":"TASHMUKHAMEDOV ABDULAZIZ","pax":1,"operator":"Авиабилет","direction":"Китай","hotel":"-","booked_at":"2026-07-29","depart_at":"2026-08-01","return_at":null,"gross":1027.0,"net":924.0,"profit":103.0,"gaps":[],"received":1027.0,"client_debt":0.0,"paid_operator":924.0,"operator_debt":0.0},{"period":"2026-07","row":32,"manager":"Муслимжон","manager_raw":"MUSLIMJON","client":"RAKHIMOV SHAVKATJON","pax":2,"operator":"Turon","direction":"Грузия · Батуми","hotel":"GROUP","booked_at":"2026-07-31","depart_at":"2026-08-28","return_at":"2026-09-04","gross":1900.0,"net":1840.0,"profit":60.0,"gaps":[],"received":1900.0,"client_debt":0.0,"paid_operator":1840.0,"operator_debt":0.0},{"period":"2026-07","row":33,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"JAVLON","pax":4,"operator":"Asialuxe","direction":"Турция","hotel":"SUSESI","booked_at":"2026-07-01","depart_at":"2026-07-17","return_at":"2026-07-24","gross":5450.0,"net":5040.0,"profit":410.0,"gaps":[],"received":5450.0,"client_debt":0.0,"paid_operator":5040.0,"operator_debt":0.0},{"period":"2026-07","row":34,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"ASAD","pax":2,"operator":"Asialuxe","direction":"Турция","hotel":"KAYA BELEK","booked_at":"2026-07-01","depart_at":"2026-09-15","return_at":"2026-09-22","gross":3000.0,"net":2540.0,"profit":460.0,"gaps":[],"received":3000.0,"client_debt":0.0,"paid_operator":2540.0,"operator_debt":0.0},{"period":"2026-07","row":35,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"FARRUH","pax":5,"operator":"Индивидуальный","direction":"Египет · Шарм-эль-Шейх","hotel":"RIXOS RADAMIS","booked_at":"2026-07-04","depart_at":"2026-08-13","return_at":"2026-08-20","gross":6350.0,"net":5700.0,"profit":650.0,"gaps":[],"received":6350.0,"client_debt":0.0,"paid_operator":5700.0,"operator_debt":0.0},{"period":"2026-07","row":36,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"SAIDRASUL","pax":2,"operator":"Индивидуальный","direction":"Турция","hotel":"AKRA FETHIYE","booked_at":"2026-07-06","depart_at":"2026-07-07","return_at":"2026-07-14","gross":5000.0,"net":4560.0,"profit":440.0,"gaps":[],"received":5000.0,"client_debt":0.0,"paid_operator":4560.0,"operator_debt":0.0},{"period":"2026-07","row":37,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"FERUZAKHON","pax":2,"operator":"Индивидуальный","direction":"Азербайджан","hotel":"GARABH","booked_at":"2026-07-08","depart_at":"2026-07-26","return_at":"2026-08-02","gross":2900.0,"net":2800.0,"profit":100.0,"gaps":[],"received":2900.0,"client_debt":0.0,"paid_operator":2800.0,"operator_debt":0.0},{"period":"2026-07","row":38,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"MALIKA","pax":2,"operator":"Индивидуальный","direction":"Египет · Шарм-эль-Шейх","hotel":"ALBATROS GRAND","booked_at":"2026-07-13","depart_at":"2026-07-16","return_at":"2026-07-23","gross":2350.0,"net":2158.0,"profit":192.0,"gaps":[],"received":2350.0,"client_debt":0.0,"paid_operator":2158.0,"operator_debt":0.0},{"period":"2026-07","row":39,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"DURDONA","pax":2,"operator":"Индивидуальный","direction":"Турция","hotel":"GROUP","booked_at":"2026-07-13","depart_at":"2026-09-16","return_at":"2026-09-23","gross":1830.0,"net":1743.0,"profit":87.0,"gaps":[],"received":1830.0,"client_debt":0.0,"paid_operator":1743.0,"operator_debt":0.0},{"period":"2026-07","row":40,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"DAVRON","pax":2,"operator":"Turon","direction":"Грузия · Батуми","hotel":"GROUP","booked_at":"2026-07-13","depart_at":"2026-08-10","return_at":"2026-08-17","gross":1940.0,"net":1780.0,"profit":160.0,"gaps":[],"received":1940.0,"client_debt":0.0,"paid_operator":1780.0,"operator_debt":0.0},{"period":"2026-07","row":41,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"ULUGBEK","pax":2,"operator":"Pegas","direction":"Египет · Шарм-эль-Шейх","hotel":"JAZ MIRABLE","booked_at":"2026-07-13","depart_at":"2026-07-17","return_at":"2026-07-14","gross":2200.0,"net":2180.0,"profit":20.0,"gaps":[],"received":2200.0,"client_debt":0.0,"paid_operator":2180.0,"operator_debt":0.0},{"period":"2026-07","row":42,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"RAVSHAN","pax":3,"operator":"Индивидуальный","direction":"Узбекистан","hotel":"GROUP","booked_at":"2026-07-14","depart_at":"2026-07-23","return_at":"2026-07-30","gross":1850.0,"net":1550.0,"profit":300.0,"gaps":[],"received":1850.0,"client_debt":0.0,"paid_operator":1550.0,"operator_debt":0.0},{"period":"2026-07","row":43,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"FARRUX","pax":2,"operator":"Turon","direction":"Грузия · Батуми","hotel":"GROUP","booked_at":"2026-07-14","depart_at":"2026-08-21","return_at":"2026-08-28","gross":1940.0,"net":1840.0,"profit":100.0,"gaps":[],"received":1940.0,"client_debt":0.0,"paid_operator":1840.0,"operator_debt":0.0},{"period":"2026-07","row":44,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"NODIR","pax":2,"operator":"Prestige","direction":"Египет · Шарм-эль-Шейх","hotel":"RIXOS RADAMIS","booked_at":"2026-07-14","depart_at":"2026-08-01","return_at":"2026-08-08","gross":3100.0,"net":2960.0,"profit":140.0,"gaps":[],"received":3100.0,"client_debt":0.0,"paid_operator":2960.0,"operator_debt":0.0},{"period":"2026-07","row":45,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"FARHOD","pax":3,"operator":"Prestige","direction":"Египет · Шарм-эль-Шейх","hotel":"RIXOS RADAMIS","booked_at":"2026-07-16","depart_at":"2026-08-04","return_at":"2026-08-15","gross":4250.0,"net":4050.0,"profit":200.0,"gaps":[],"received":4250.0,"client_debt":0.0,"paid_operator":4050.0,"operator_debt":0.0},{"period":"2026-07","row":46,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"FARRUH","pax":2,"operator":"Индивидуальный","direction":"Турция","hotel":"SPECTRA","booked_at":null,"depart_at":"2026-07-28","return_at":"2026-08-05","gross":1950.0,"net":1660.0,"profit":290.0,"gaps":[],"received":1950.0,"client_debt":0.0,"paid_operator":1660.0,"operator_debt":0.0},{"period":"2026-07","row":47,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"NIGORA","pax":4,"operator":"Pegas","direction":"Вьетнам","hotel":"SWANDOR","booked_at":"2026-07-21","depart_at":"2026-07-31","return_at":"2026-08-07","gross":5800.0,"net":5600.0,"profit":200.0,"gaps":[],"received":5800.0,"client_debt":0.0,"paid_operator":5600.0,"operator_debt":0.0},{"period":"2026-07","row":49,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"GULNOZA","pax":2,"operator":"Индивидуальный","direction":"Турция","hotel":"SPECTRA","booked_at":"2026-07-27","depart_at":"2026-07-28","return_at":"2026-08-04","gross":1135.0,"net":1033.0,"profit":102.0,"gaps":[],"received":1135.0,"client_debt":0.0,"paid_operator":1033.0,"operator_debt":0.0},{"period":"2026-07","row":50,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"GIYOS","pax":2,"operator":"Индивидуальный","direction":"Турция","hotel":"ROYAL ASARLIK, RDEN CITY","booked_at":"2026-07-17","depart_at":"2026-08-20","return_at":"2026-08-27","gross":6250.0,"net":6050.0,"profit":200.0,"gaps":[],"received":6250.0,"client_debt":0.0,"paid_operator":6050.0,"operator_debt":0.0},{"period":"2026-07","row":51,"manager":"Сарвиноз","manager_raw":"SARVINOZ","client":"HUSNORA","pax":5,"operator":"Turon","direction":"Грузия · Батуми","hotel":"GROUP","booked_at":"2026-02-03","depart_at":"2026-07-17","return_at":"2026-07-24","gross":4480.0,"net":4230.0,"profit":250.0,"gaps":[],"received":4480.0,"client_debt":0.0,"paid_operator":4230.0,"operator_debt":0.0},{"period":"2026-07","row":52,"manager":"Шахноза","manager_raw":"SHAHNOZA","client":"AYSAEV ABDULLO","pax":2,"operator":"Pegas","direction":"ОАЭ","hotel":"FIVA PALM","booked_at":"2026-07-21","depart_at":"2026-07-22","return_at":"2026-07-26","gross":1150.0,"net":1075.0,"profit":75.0,"gaps":[],"received":1150.0,"client_debt":0.0,"paid_operator":1075.0,"operator_debt":0.0},{"period":"2026-07","row":53,"manager":"Шахноза","manager_raw":"SHAHNOZA","client":"ABDULATIFOV SHAXZOD","pax":1,"operator":"Ratehawk","direction":"Малайзия","hotel":"LAZDANA KL","booked_at":"2026-07-27","depart_at":"2026-08-08","return_at":"2026-08-14","gross":950.0,"net":807.0,"profit":143.0,"gaps":[],"received":950.0,"client_debt":0.0,"paid_operator":807.0,"operator_debt":0.0},{"period":"2026-07","row":54,"manager":"Шахноза","manager_raw":"SHAHNOZA","client":"KARIMOV MUZAFFAR","pax":3,"operator":"Malva","direction":"Кыргызстан","hotel":"GROUP","booked_at":"2026-07-31","depart_at":"2026-08-01","return_at":"2026-08-08","gross":1994.0,"net":1906.0,"profit":88.0,"gaps":[],"received":1994.0,"client_debt":0.0,"paid_operator":1906.0,"operator_debt":0.0},{"period":"2026-08","row":2,"manager":"Азиза","manager_raw":"Азиза","client":"Шоназаров Темурбек","pax":4,"operator":"Индивидуальный","direction":"Европа","hotel":null,"booked_at":null,"depart_at":"2026-08-26","return_at":"2026-09-08","gross":18000.0,"net":16071.0,"profit":1929.0,"gaps":[],"received":18000.0,"client_debt":0.0,"paid_operator":16071.0,"operator_debt":0.0},{"period":"2026-08","row":3,"manager":"Азиза","manager_raw":"Азиза","client":"Умра Анжум","pax":4,"operator":"Turon","direction":"Умра","hotel":null,"booked_at":null,"depart_at":"2026-08-27","return_at":"2026-09-05","gross":6800.0,"net":6400.0,"profit":400.0,"gaps":[],"received":6800.0,"client_debt":0.0,"paid_operator":6400.0,"operator_debt":0.0},{"period":"2026-08","row":4,"manager":"Азиза","manager_raw":"Азиза","client":"Рахимжонов Жахонгир","pax":4,"operator":"Kazunion","direction":"Турция","hotel":null,"booked_at":null,"depart_at":"2026-08-06","return_at":"2026-08-13","gross":21900.0,"net":21235.0,"profit":665.0,"gaps":[],"received":21900.0,"client_debt":0.0,"paid_operator":21235.0,"operator_debt":0.0},{"period":"2026-08","row":5,"manager":"Азиза","manager_raw":"Азиза","client":"Касимов Баходир","pax":4,"operator":"Индивидуальный","direction":"Китай","hotel":null,"booked_at":null,"depart_at":"2026-08-03","return_at":"2026-08-05","gross":1050.0,"net":885.0,"profit":165.0,"gaps":[],"received":1050.0,"client_debt":0.0,"paid_operator":885.0,"operator_debt":0.0},{"period":"2026-08","row":6,"manager":"Азиза","manager_raw":"Азиза","client":"Кадиров Нуриддин","pax":2,"operator":"Ratehawk","direction":"Китай","hotel":null,"booked_at":null,"depart_at":"2026-08-30","return_at":"2026-07-29","gross":480.0,"net":317.0,"profit":163.0,"gaps":[],"received":480.0,"client_debt":0.0,"paid_operator":317.0,"operator_debt":0.0},{"period":"2026-08","row":7,"manager":"Азиза","manager_raw":"Азиза","client":"Акрамхон Хусанхонов","pax":2,"operator":"Rezlive","direction":"Турция","hotel":null,"booked_at":null,"depart_at":"2026-08-13","return_at":"2026-08-22","gross":370.0,"net":242.0,"profit":128.0,"gaps":[],"received":370.0,"client_debt":0.0,"paid_operator":242.0,"operator_debt":0.0},{"period":"2026-08","row":8,"manager":"Азиза","manager_raw":"Азиза","client":"Гуломов Гафуржон","pax":8,"operator":"Turon","direction":"Грузия","hotel":null,"booked_at":null,"depart_at":"2026-08-28","return_at":"2026-09-04","gross":1145.0,"net":1095.0,"profit":50.0,"gaps":[],"received":1145.0,"client_debt":0.0,"paid_operator":1095.0,"operator_debt":0.0},{"period":"2026-08","row":9,"manager":"Азиза","manager_raw":"Азиза","client":"Анжум","pax":2,"operator":"Turon","direction":"Умра","hotel":null,"booked_at":null,"depart_at":"2026-09-17","return_at":"2026-09-26","gross":3400.0,"net":3200.0,"profit":200.0,"gaps":[],"received":3400.0,"client_debt":0.0,"paid_operator":3200.0,"operator_debt":0.0},{"period":"2026-08","row":10,"manager":"Азиза","manager_raw":"Азиза","client":"Свисс","pax":4,"operator":"Turon","direction":"Умра","hotel":null,"booked_at":null,"depart_at":"2026-08-27","return_at":"2026-09-05","gross":9600.0,"net":8310.0,"profit":1290.0,"gaps":[],"received":9600.0,"client_debt":0.0,"paid_operator":8310.0,"operator_debt":0.0},{"period":"2026-08","row":11,"manager":"Шахноза","manager_raw":"Шахноза","client":"Илхамова Матлуба","pax":8,"operator":"Centrum","direction":"Турция","hotel":null,"booked_at":null,"depart_at":"2026-09-22","return_at":"2026-09-29","gross":5552.0,"net":5131.0,"profit":421.0,"gaps":[],"received":5552.0,"client_debt":0.0,"paid_operator":5131.0,"operator_debt":0.0},{"period":"2026-08","row":12,"manager":"Шахноза","manager_raw":"Шахноза","client":"Турсунов Авазбек","pax":2,"operator":"Asialuxe","direction":"Мальдивы","hotel":null,"booked_at":null,"depart_at":"2026-08-25","return_at":"2026-09-01","gross":4450.0,"net":3859.0,"profit":591.0,"gaps":[],"received":4450.0,"client_debt":0.0,"paid_operator":3859.0,"operator_debt":0.0},{"period":"2026-08","row":13,"manager":"Шахноза","manager_raw":"Шахноза","client":"Зиядходжаев Азизхуджа","pax":3,"operator":"Pegas","direction":"Таиланд","hotel":null,"booked_at":null,"depart_at":"2026-09-13","return_at":"2026-09-20","gross":2100.0,"net":1727.0,"profit":373.0,"gaps":[],"received":2100.0,"client_debt":0.0,"paid_operator":1727.0,"operator_debt":0.0},{"period":"2026-08","row":14,"manager":"Шахноза","manager_raw":"Шахноза","client":"Жалилрв Акбар","pax":2,"operator":"Asialuxe","direction":"Турция","hotel":null,"booked_at":null,"depart_at":"2026-08-30","return_at":"2026-09-06","gross":3520.0,"net":3318.0,"profit":202.0,"gaps":[],"received":3520.0,"client_debt":0.0,"paid_operator":3318.0,"operator_debt":0.0},{"period":"2026-08","row":15,"manager":"Шахноза","manager_raw":"Шахноза","client":"Муродов Сухроб","pax":2,"operator":"Kompas","direction":"Таиланд","hotel":null,"booked_at":null,"depart_at":"2026-10-23","return_at":"2026-10-30","gross":2150.0,"net":1957.0,"profit":193.0,"gaps":[],"received":2150.0,"client_debt":0.0,"paid_operator":1957.0,"operator_debt":0.0},{"period":"2026-08","row":16,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Рахим Дилшод","pax":2,"operator":"Turon","direction":"Грузия","hotel":null,"booked_at":null,"depart_at":"2026-08-21","return_at":"2026-08-28","gross":1900.0,"net":1840.0,"profit":60.0,"gaps":[],"received":1900.0,"client_debt":0.0,"paid_operator":1840.0,"operator_debt":0.0},{"period":"2026-08","row":17,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Амирбеков Камронбек","pax":2,"operator":"Centrum","direction":"Турция","hotel":null,"booked_at":null,"depart_at":"2026-08-17","return_at":"2026-08-25","gross":2100.0,"net":1988.0,"profit":112.0,"gaps":[],"received":2100.0,"client_debt":0.0,"paid_operator":1988.0,"operator_debt":0.0},{"period":"2026-08","row":18,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Холов Бахром","pax":2,"operator":"Turon","direction":"Грузия","hotel":null,"booked_at":null,"depart_at":"2026-08-21","return_at":"2026-08-28","gross":1935.0,"net":1840.0,"profit":95.0,"gaps":[],"received":1935.0,"client_debt":0.0,"paid_operator":1840.0,"operator_debt":0.0},{"period":"2026-08","row":19,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Ташаева Парвина","pax":2,"operator":"Kompas","direction":"Таиланд","hotel":null,"booked_at":null,"depart_at":"2026-11-30","return_at":"2026-12-08","gross":1834.0,"net":1675.8,"profit":158.2,"gaps":[],"received":917.0,"client_debt":917.0,"paid_operator":1675.8,"operator_debt":0.0},{"period":"2026-08","row":20,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Мухитдинова Гулноза","pax":2,"operator":"Kompas","direction":"Таиланд","hotel":null,"booked_at":null,"depart_at":"2026-11-30","return_at":"2026-12-08","gross":1834.0,"net":1670.0,"profit":164.0,"gaps":[],"received":1834.0,"client_debt":0.0,"paid_operator":1670.0,"operator_debt":0.0},{"period":"2026-08","row":21,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Мамажонова Нигинахон","pax":2,"operator":"Crystalbay","direction":"Вьетнам","hotel":null,"booked_at":null,"depart_at":"2026-09-01","return_at":"2026-09-09","gross":1550.0,"net":1529.4,"profit":20.6,"gaps":[],"received":1550.0,"client_debt":0.0,"paid_operator":1529.4,"operator_debt":0.0},{"period":"2026-08","row":22,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Мухаммеджанов Фазлиддин","pax":2,"operator":"Turon","direction":"Грузия","hotel":null,"booked_at":null,"depart_at":"2026-09-04","return_at":"2026-09-11","gross":1890.0,"net":1840.0,"profit":50.0,"gaps":[],"received":1890.0,"client_debt":0.0,"paid_operator":1840.0,"operator_debt":0.0},{"period":"2026-08","row":23,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Бабажанов Алижон","pax":6,"operator":"Asialuxe","direction":"Турция","hotel":null,"booked_at":null,"depart_at":"2026-08-30","return_at":"2026-09-04","gross":6000.0,"net":5493.0,"profit":507.0,"gaps":[],"received":6000.0,"client_debt":0.0,"paid_operator":5493.0,"operator_debt":0.0},{"period":"2026-08","row":24,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Саидрахимов Улугбек","pax":2,"operator":"Авиабилет","direction":"Турция","hotel":null,"booked_at":null,"depart_at":"2026-09-16","return_at":"2026-09-22","gross":1485.0,"net":1421.0,"profit":64.0,"gaps":[],"received":1485.0,"client_debt":0.0,"paid_operator":1421.0,"operator_debt":0.0},{"period":"2026-08","row":25,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Ботиров Сардор","pax":3,"operator":"Kompas","direction":"ОАЭ","hotel":null,"booked_at":null,"depart_at":"2026-09-10","return_at":"2026-09-16","gross":2330.0,"net":2270.6,"profit":59.4,"gaps":[],"received":2330.0,"client_debt":0.0,"paid_operator":2270.6,"operator_debt":0.0},{"period":"2026-08","row":26,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Джунусова Севинч","pax":2,"operator":"Kompas","direction":"Таиланд","hotel":null,"booked_at":null,"depart_at":"2026-11-30","return_at":"2026-12-08","gross":1900.0,"net":1783.4,"profit":116.6,"gaps":[],"received":800.0,"client_debt":1100.0,"paid_operator":1783.4,"operator_debt":0.0},{"period":"2026-08","row":27,"manager":"Муслимжон","manager_raw":"Муслимжон","client":"Ходжаев Максудхон","pax":4,"operator":"Turon","direction":"Грузия","hotel":null,"booked_at":null,"depart_at":"2026-09-04","return_at":"2026-09-11","gross":3720.0,"net":3480.0,"profit":240.0,"gaps":[],"received":3720.0,"client_debt":0.0,"paid_operator":3480.0,"operator_debt":0.0},{"period":"2026-08","row":28,"manager":"Абдулкарим","manager_raw":"Абдулкарим","client":"Жахонгиров Закарие","pax":2,"operator":"EasyBooking","direction":"Турция","hotel":null,"booked_at":null,"depart_at":"2026-08-31","return_at":"2026-08-07","gross":2760.0,"net":2711.0,"profit":49.0,"gaps":[],"received":2760.0,"client_debt":0.0,"paid_operator":2711.0,"operator_debt":0.0},{"period":"2026-08","row":29,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Мухаммедов Гайрат","pax":7,"operator":"Индивидуальный","direction":"Грузия","hotel":null,"booked_at":null,"depart_at":"2026-08-04","return_at":"2026-08-11","gross":14000.0,"net":11665.0,"profit":2335.0,"gaps":[],"received":14000.0,"client_debt":0.0,"paid_operator":11665.0,"operator_debt":0.0},{"period":"2026-08","row":30,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Курбанов Нурали","pax":6,"operator":"Kompas","direction":"Китай","hotel":null,"booked_at":null,"depart_at":"2026-08-15","return_at":"2026-08-22","gross":5350.0,"net":4917.0,"profit":433.0,"gaps":[],"received":5350.0,"client_debt":0.0,"paid_operator":4917.0,"operator_debt":0.0},{"period":"2026-08","row":31,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Ражабов Шохрух","pax":2,"operator":"Viptourkey","direction":"Турция","hotel":null,"booked_at":null,"depart_at":"2026-08-22","return_at":"2026-08-29","gross":1700.0,"net":1570.0,"profit":130.0,"gaps":[],"received":1700.0,"client_debt":0.0,"paid_operator":1570.0,"operator_debt":0.0},{"period":"2026-08","row":32,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Нематов Акмал","pax":2,"operator":"Индивидуальный","direction":"Таиланд","hotel":null,"booked_at":null,"depart_at":"2026-08-27","return_at":"2026-09-04","gross":1680.0,"net":1568.0,"profit":112.0,"gaps":[],"received":1680.0,"client_debt":0.0,"paid_operator":1568.0,"operator_debt":0.0},{"period":"2026-08","row":33,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Аскаров Ахрор","pax":3,"operator":"Mirjahon","direction":"Турция","hotel":null,"booked_at":null,"depart_at":"2026-08-14","return_at":"2026-08-21","gross":2950.0,"net":2714.0,"profit":236.0,"gaps":[],"received":2950.0,"client_debt":0.0,"paid_operator":2714.0,"operator_debt":0.0},{"period":"2026-08","row":34,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Яминов Умид","pax":2,"operator":"EasyBooking","direction":"Азербайджан","hotel":null,"booked_at":null,"depart_at":"2026-08-24","return_at":"2026-09-01","gross":1712.0,"net":1627.0,"profit":85.0,"gaps":[],"received":1712.0,"client_debt":0.0,"paid_operator":1627.0,"operator_debt":0.0},{"period":"2026-08","row":35,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Усаинов Рахматшо","pax":2,"operator":"Turon","direction":"Умра","hotel":null,"booked_at":null,"depart_at":"2026-08-22","return_at":"2026-09-02","gross":1250.0,"net":1200.0,"profit":50.0,"gaps":[],"received":1250.0,"client_debt":0.0,"paid_operator":1200.0,"operator_debt":0.0},{"period":"2026-08","row":36,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Мажидова Феруза","pax":2,"operator":"Pegas","direction":"Вьетнам","hotel":null,"booked_at":null,"depart_at":"2026-09-08","return_at":"2026-09-15","gross":2990.0,"net":2830.0,"profit":160.0,"gaps":[],"received":2990.0,"client_debt":0.0,"paid_operator":2830.0,"operator_debt":0.0},{"period":"2026-08","row":37,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Комолхонов Анвар","pax":2,"operator":"Индивидуальный","direction":"Азербайджан","hotel":null,"booked_at":null,"depart_at":"2026-08-29","return_at":"2026-09-04","gross":3835.0,"net":3450.0,"profit":385.0,"gaps":[],"received":3835.0,"client_debt":0.0,"paid_operator":3450.0,"operator_debt":0.0},{"period":"2026-08","row":38,"manager":"Сарвиноз","manager_raw":"Сарвиноз","client":"Усманходжаева Дилноза","pax":12,"operator":"Kompas","direction":"Китай","hotel":null,"booked_at":null,"depart_at":"2026-08-29","return_at":"2026-09-04","gross":10200.0,"net":9470.0,"profit":730.0,"gaps":[],"received":10200.0,"client_debt":0.0,"paid_operator":9470.0,"operator_debt":0.0}],"issues":["июнь, строка 10: прибыль в отчёте 150, а брутто−нетто = 180","июль, строка 48: нет суммы","направление «европа» (1 шт.) не нашлось в справочнике — оставлено как есть","направление «мальдивы» (1 шт.) не нашлось в справочнике — оставлено как есть","направление «азербайджан» (2 шт.) не нашлось в справочнике — оставлено как есть","туроператор «rezlive» (1 шт.) не нашёлся в справочнике — оставлен как есть","туроператор «crystalbay» (1 шт.) не нашёлся в справочнике — оставлен как есть","туроператор «viptourkey» (1 шт.) не нашёлся в справочнике — оставлен как есть","туроператор «mirjahon» (1 шт.) не нашёлся в справочнике — оставлен как есть"]};
+
+const S = {
+  role: 'rop',
+  period: '2026-07',
+  currency: 'USD',
+  rate: 12800,
+  mask: false,
+  dealSort: { key: 'profit', dir: -1 },
+  mgrSort: { key: 'profit', dir: -1 },
+  dealsAll: false,
+  expand: { direction: false, operator: false },   // раскрыты ли «Прочие»
+  filter: null,                                    // {kind, value} — фильтр таблицы сделок
+  rankMetric: 'profit',                            // profit | margin | gross
+  onlyLow: false,                                  // только низкомаржинальные сделки
+  cmpA: null, cmpB: null,                          // периоды для сравнения
+  team: null                                       // состав команды
+};
+
+// Порог низкой маржи. Ниже него сделка почти не приносит денег при полной
+// загрузке менеджера, поэтому подсвечивается отдельно.
+const MARGIN_LOW = 5;
+// Минимум сделок, чтобы попасть в рейтинг по марже: одна сделка с 20%
+// не значит, что оператор выгодный.
+const MIN_DEALS_FOR_MARGIN = 3;
+
+const PERIOD_NAMES = { '2026-05':'Май', '2026-06':'Июнь', '2026-07':'Июль' };
+const PERIODS = [...new Set(DATA.deals.map(d => d.period))].sort();
+const DATA_MANAGERS = [...new Set(DATA.deals.map(d => d.manager))].sort();
+
+// Все написания имени в исходной таблице. По ним импорт связывает строку
+// с профилем сотрудника; у одного человека их бывает несколько.
+function aliasesOf(name) {
+  return [...new Set(DATA.deals.filter(d => d.manager === name)
+    .map(d => d.manager_raw).filter(Boolean))].sort();
+}
+
+/* ---------- состав команды ----------
+   Состав хранится отдельно от сделок. Убрать сотрудника — значит
+   перестать пускать его в систему и показывать в текущих рейтингах,
+   но НЕ удалить его продажи: иначе отчёт за прошлый месяц изменится
+   задним числом, а расхождения в закрытых периодах — худшее, что может
+   случиться с управленческим отчётом.                                  */
+const TEAM_KEY = 'turon.team.v1';
+
+function baseTeam() {
+  return DATA_MANAGERS.map(n => ({ name: n, aliases: aliasesOf(n), active: true, manual: false }));
+}
+function loadTeam() {
+  const base = baseTeam();
+  try {
+    const raw = localStorage.getItem(TEAM_KEY);
+    if (!raw) return base;
+    const saved = JSON.parse(raw);
+    const map = new Map(base.map(t => [t.name, t]));
+    saved.forEach(t => map.set(t.name, Object.assign({ aliases: [] }, map.get(t.name) || {}, t)));
+    return [...map.values()];
+  } catch (e) {
+    return base;   // приватный режим или заблокированное хранилище — не падаем
+  }
+}
+function saveTeam() {
+  try { localStorage.setItem(TEAM_KEY, JSON.stringify(S.team)); } catch (e) {}
+}
+
+// Кого пускать в систему.
+const loginNames = () => S.team.filter(t => t.active).map(t => t.name);
+// Кого учитывать в статистике: всех, включая ушедших, если у них есть сделки.
+const statNames  = () => [...new Set(S.team.map(t => t.name).concat(DATA_MANAGERS))];
+const isActive   = n => { const t = S.team.find(x => x.name === n); return t ? t.active : true; };
+const TODAY = new Date('2026-08-28');
+
+/* ---------- формат ---------- */
+const nf = new Intl.NumberFormat('ru-RU');
+function money(v, opts) {
+  opts = opts || {};
+  if (v === null || v === undefined) return '—';
+  if (S.currency === 'USD') {
+    const s = '$' + nf.format(Math.round(Math.abs(v)));
+    return (v < 0 ? '−' : (opts.sign && v > 0 ? '+' : '')) + s;
+  }
+  const u = Math.abs(v) * S.rate;
+  const s = u >= 1e9 ? (u / 1e9).toFixed(2).replace('.', ',') + ' млрд'
+          : u >= 1e6 ? (u / 1e6).toFixed(1).replace('.', ',') + ' млн'
+          : nf.format(Math.round(u));
+  return (v < 0 ? '−' : (opts.sign && v > 0 ? '+' : '')) + s + ' сум';
+}
+const pct = v => (v === null ? '—' : v.toFixed(1).replace('.', ',') + '%');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function maskName(n) {
+  if (!n) return '—';
+  if (!S.mask) return n;
+  return n.split(/\s+/).map((w, i) => i === 0 ? w[0] + '·'.repeat(Math.max(w.length - 1, 2)) : w[0] + '.').join(' ');
+}
+function dmy(iso) {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-');
+  return d + '.' + m + '.' + y.slice(2);
+}
+const RAMP = ['--r1','--r2','--r3','--r4','--r5'];
+const rampAt = (i, n) => 'var(' + RAMP[Math.min(RAMP.length - 1, Math.round((1 - i / Math.max(n - 1, 1)) * (RAMP.length - 1)))] + ')';
+
+/* ---------- выборки ---------- */
+function scope(period) {
+  let d = DATA.deals;
+  if (period !== 'all') d = d.filter(x => x.period === period);
+  if (S.role !== 'rop') d = d.filter(x => x.manager === S.role);
+  return d;
+}
+function agg(list) {
+  const a = { n: list.length, gross: 0, profit: 0, pax: 0, clientDebt: 0, opDebt: 0, gaps: 0 };
+  for (const d of list) {
+    a.gross += d.gross || 0;
+    a.profit += d.profit || 0;
+    a.pax += d.pax || 0;
+    a.clientDebt += Math.max(d.client_debt || 0, 0);
+    a.opDebt += d.operator_debt || 0;
+    if (d.gaps && d.gaps.length) a.gaps++;
+  }
+  a.avg = a.n ? a.gross / a.n : 0;
+  a.margin = a.gross ? a.profit / a.gross * 100 : null;
+  return a;
+}
+// Доля расхода на рекламу с одного менеджера за месяц.
+const adShare = p => (DATA.ad_spend[p] || 0) / DATA.ad_spend_split;
+
+// Сколько рекламы вычитается у конкретного менеджера за выбранный период.
+// Считаем только те месяцы, в которых у него были продажи: иначе менеджер,
+// вышедший в июле, платит и за май с июнем.
+function adFor(manager, period) {
+  const months = period === 'all' ? PERIODS : [period];
+  return months.reduce((s, p) =>
+    s + (DATA.deals.some(d => d.manager === manager && d.period === p) ? adShare(p) : 0), 0);
+}
+function adTotalFor(period) {
+  const mgrs = [...new Set(scope(period).map(d => d.manager))];
+  return mgrs.reduce((s, m) => s + adFor(m, period), 0);
+}
+function byKey(list, key) {
+  const m = new Map();
+  for (const d of list) {
+    const k = d[key] || '—';
+    const v = m.get(k) || { key: k, n: 0, gross: 0, profit: 0 };
+    v.n++; v.gross += d.gross || 0; v.profit += d.profit || 0;
+    m.set(k, v);
+  }
+  return [...m.values()].sort((a, b) => b.profit - a.profit);
+}
+
+/* ---------- подсказка ---------- */
+const tip = document.getElementById('tip');
+function showTip(e, html) {
+  tip.innerHTML = html;
+  tip.style.opacity = '1';
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY - 12;
+  if (x + r.width > innerWidth - 10) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 10) y = innerHeight - r.height - 10;
+  tip.style.left = x + 'px'; tip.style.top = Math.max(y, 8) + 'px';
+}
+const hideTip = () => { tip.style.opacity = '0'; };
+
+/* ---------- управление ---------- */
+function seg(el, items, cur, cb) {
+  el.innerHTML = items.map(i =>
+    `<button data-v="${esc(i.v)}" aria-pressed="${i.v === cur}">${esc(i.t)}</button>`).join('');
+  el.onclick = e => {
+    const b = e.target.closest('button');
+    if (b) { cb(b.dataset.v); }
+  };
+}
+
+function renderControls() {
+  seg(document.getElementById('roleSeg'),
+    [{ v: 'rop', t: 'РОП' }].concat(loginNames().sort().map(m => ({ v: m, t: m }))),
+    S.role, v => { S.role = v; S.dealsAll = false; S.filter = null; S.onlyLow = false; render(); });
+
+  seg(document.getElementById('perSeg'),
+    PERIODS.map(p => ({ v: p, t: PERIOD_NAMES[p] || p })).concat([{ v: 'all', t: 'Всё' }]),
+    S.period, v => { S.period = v; S.dealsAll = false; S.filter = null; S.onlyLow = false; render(); });
+
+  seg(document.getElementById('curSeg'),
+    [{ v: 'USD', t: '$' }, { v: 'UZS', t: 'сум' }],
+    S.currency, v => { S.currency = v; render(); });
+
+  document.getElementById('rateBox').style.display = S.currency === 'UZS' ? 'flex' : 'none';
+}
+document.getElementById('rate').oninput = e => {
+  S.rate = Math.max(1, +e.target.value || 1); render();
+};
+document.getElementById('mask').onchange = e => { S.mask = e.target.checked; render(); };
+
+/* ---------- контекст ---------- */
+function renderCtx() {
+  const el = document.getElementById('ctx');
+  if (S.role === 'rop') {
+    el.innerHTML = `<div class="flag info"><span class="fi">Вход РОП</span><div>
+      Видны все менеджеры, все сделки и расчёт выплат по отделу.
+      <b>Переключите «Вход» на любого менеджера</b> — экран перестроится на его личные данные,
+      а блоки с чужими цифрами исчезнут. В рабочей версии это ограничение стоит в базе,
+      а не в интерфейсе: чужие строки просто не отдаются.</div></div>`;
+  } else {
+    el.innerHTML = `<div class="flag info"><span class="fi">Вход менеджера</span><div>
+      <b>${esc(S.role)}</b> видит только свои сделки и свою выплату.
+      Рейтинга коллег, сводки по отделу и чужих клиентов на этом экране нет.</div></div>`;
+  }
+}
+
+/* ---------- KPI ---------- */
+function renderKpis() {
+  const cur = agg(scope(S.period));
+  const idx = PERIODS.indexOf(S.period);
+  const prev = (S.period !== 'all' && idx > 0) ? agg(scope(PERIODS[idx - 1])) : null;
+  const dlt = (a, b) => (b && b > 0) ? ((a - b) / b * 100) : null;
+
+  const delta = (v, label) => {
+    if (v === null) return `<div class="k-s">${label}</div>`;
+    const c = v >= 0 ? 'up' : 'down', ar = v >= 0 ? '↑' : '↓';
+    return `<div class="k-s"><span class="${c}">${ar} ${Math.abs(v).toFixed(1).replace('.', ',')}%</span> ${label}</div>`;
+  };
+  const prevName = prev ? 'к ' + (PERIOD_NAMES[PERIODS[idx - 1]] || '').toLowerCase() + 'ю' : '';
+
+  const commission = cur.profit * DATA.commission_rate;
+  const adTotal = S.role === 'rop' ? adTotalFor(S.period) : adFor(S.role, S.period);
+  const payout = commission - adTotal;
+
+  document.getElementById('kpis').innerHTML = [
+    `<div class="card kpi lead"><div class="k-l">${S.role === 'rop' ? 'Прибыль агентства' : 'Прибыль по моим сделкам'}</div>
+      <div class="k-v">${money(cur.profit)}</div>
+      ${prev ? delta(dlt(cur.profit, prev.profit), prevName) : `<div class="k-s">маржа ${pct(cur.margin)}</div>`}</div>`,
+    `<div class="card kpi"><div class="k-l">Оборот</div>
+      <div class="k-v">${money(cur.gross)}</div>
+      ${prev ? delta(dlt(cur.gross, prev.gross), prevName)
+             : `<div class="k-s">за ${S.period === 'all' ? 'май — июль' : (PERIOD_NAMES[S.period] || '').toLowerCase()}</div>`}</div>`,
+    `<div class="card kpi"><div class="k-l">Продано туров</div>
+      <div class="k-dual">
+        <span><b>${cur.n}</b><s>сделок</s></span>
+        <span><b>${cur.pax}</b><s>туристов</s></span>
+      </div>
+      <div class="k-s">средний чек ${money(cur.avg)} за сделку</div></div>`,
+    `<div class="card kpi"><div class="k-l">${S.role === 'rop' ? 'К выплате менеджерам' : 'Моя выплата'}</div>
+      <div class="k-v">${money(payout)}</div>
+      <div class="k-s">комиссия ${money(commission)} − реклама ${money(adTotal)}</div></div>`
+  ].join('');
+}
+
+/* ---------- требует внимания ---------- */
+function renderAttention() {
+  const list = scope(S.period);
+  const opDebt = list.filter(d => (d.operator_debt || 0) > 0).sort((a, b) => b.operator_debt - a.operator_debt);
+  const clDebt = list.filter(d => (d.client_debt || 0) > 0).sort((a, b) => b.client_debt - a.client_debt);
+  const soon = list.filter(d => d.depart_at && new Date(d.depart_at) >= TODAY)
+                   .sort((a, b) => a.depart_at.localeCompare(b.depart_at));
+  const sum = (a, k) => a.reduce((s, x) => s + x[k], 0);
+
+  const item = (cls, mark, title, sub, amt, amtCls) =>
+    `<div class="att-i"><div class="ic ${cls}">${mark}</div>
+      <div class="tx"><b>${title}</b><s>${sub}</s></div>
+      <div class="amt ${amtCls || ''}">${amt}</div></div>`;
+
+  const block = (title, count, sub, rows) => `<div class="card">
+      <div class="card-h"><span class="card-t">${title}</span><span class="card-s">${sub}</span></div>
+      <div class="att">${rows || '<div class="empty">Ничего не требует действий</div>'}</div></div>`;
+
+  // Продано вперёд: брони, вылет по которым ещё не наступил. Показывает,
+  // чем отдел живёт в следующем месяце, а не что заработал в прошлом.
+  const fwd = DATA.deals.filter(d => (S.role === 'rop' || d.manager === S.role)
+                                  && d.depart_at && new Date(d.depart_at) >= TODAY);
+  const fwdByMonth = {};
+  fwd.forEach(d => {
+    const k = d.depart_at.slice(0, 7);
+    (fwdByMonth[k] = fwdByMonth[k] || { n: 0, gross: 0, profit: 0, pax: 0 });
+    fwdByMonth[k].n++; fwdByMonth[k].gross += d.gross;
+    fwdByMonth[k].profit += d.profit || 0; fwdByMonth[k].pax += d.pax;
+  });
+  const MON = ['января','февраля','марта','апреля','мая','июня','июля',
+               'августа','сентября','октября','ноября','декабря'];
+  const monName = k => MON[+k.slice(5, 7) - 1] + ' ' + k.slice(0, 4);
+
+  document.getElementById('attWrap').innerHTML = `
+    <h2 class="sec">Требует внимания</h2>
+    <p class="sec-note">То, что в Excel не видно без ручного просмотра всех строк: незакрытые долги и ближайшие вылеты. Сегодня — 28 августа 2026.</p>
+    <div class="grid g2">
+      ${block('Мы должны туроператорам', opDebt.length,
+        opDebt.length ? money(sum(opDebt, 'operator_debt')) + ' · ' + opDebt.length + ' шт.' : 'чисто',
+        opDebt.slice(0, 6).map(d => item('r', '!', maskName(d.client),
+          `${d.operator || '—'} · ${d.direction || '—'} · вылет ${dmy(d.depart_at)}`,
+          money(d.operator_debt), 'down')).join(''))}
+      ${block('Клиенты должны нам', clDebt.length,
+        clDebt.length ? money(sum(clDebt, 'client_debt')) + ' · ' + clDebt.length + ' шт.' : 'чисто',
+        clDebt.slice(0, 6).map(d => item('w', '!', maskName(d.client),
+          `${d.direction || '—'} · вылет ${dmy(d.depart_at)}`,
+          money(d.client_debt))).join(''))}
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card">
+        <div class="card-h"><span class="card-t">Продано вперёд</span>
+          <span class="card-s">вылет ещё не наступил</span></div>
+        <div class="k-dual" style="margin-bottom:4px">
+          <span><b>${esc(money(fwd.reduce((s, d) => s + d.gross, 0)))}</b><s>оборот</s></span>
+          <span><b>${esc(money(fwd.reduce((s, d) => s + (d.profit || 0), 0)))}</b><s>прибыль</s></span>
+        </div>
+        <div class="att" style="margin-top:12px">
+          ${Object.keys(fwdByMonth).sort().map(k => {
+            const v = fwdByMonth[k];
+            return `<div class="att-i"><div class="ic g">→</div>
+              <div class="tx"><b>${monName(k)}</b><s>${v.n} броней · ${v.pax} туристов</s></div>
+              <div class="amt">${esc(money(v.gross))}</div></div>`;
+          }).join('') || '<div class="empty">Вперёд ничего не продано</div>'}
+        </div>
+        <div class="flag warn" style="margin-top:14px"><span class="fi">Важно</span><div>
+          Цифра занижена: в файле есть листы только по июль, августовские брони
+          в него ещё не попали. На полных данных это одна из главных метрик
+          руководителя — чем отдел живёт в следующем месяце.</div></div>
+      </div>
+      ${block('Ближайшие вылеты', soon.length, soon.length + ' впереди',
+        soon.slice(0, 6).map(d => item('g', '✈', maskName(d.client),
+          `${d.direction || '—'} · ${d.pax} чел. · ${d.manager}`,
+          dmy(d.depart_at))).join(''))}
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      ${S.role === 'rop' ? block('Расход на таргетированную рекламу',
+        0, money(PERIODS.reduce((s, p) => s + (DATA.ad_spend[p] || 0), 0)) + ' за 3 мес.',
+        PERIODS.map(p => {
+          const on = (S.period === p || S.period === 'all');
+          return `<div class="att-i"${on ? '' : ' style="opacity:.45"'}>
+            <div class="ic w">◎</div>
+            <div class="tx"><b>${PERIOD_NAMES[p]}</b><s>делится на ${DATA.ad_spend_split} долей → ${esc(money((DATA.ad_spend[p] || 0) / DATA.ad_spend_split))} с менеджера</s></div>
+            <div class="amt">${esc(money(DATA.ad_spend[p] || 0))}</div></div>`;
+        }).join('')) : ''}
+    </div>`;
+}
+
+/* ---------- рейтинг менеджеров + графики (только РОП) ---------- */
+function renderRop() {
+  const el = document.getElementById('ropOnly');
+  if (S.role !== 'rop') { el.innerHTML = renderMyDynamics(); bindSmall(); return; }
+
+  const list = scope(S.period);
+  const rows = statNames().map(m => {
+    const own = list.filter(d => d.manager === m);
+    const a = agg(own);
+    const commission = a.profit * DATA.commission_rate;
+    const ad = adFor(m, S.period);
+    return { m, n: a.n, pax: a.pax, gross: a.gross, profit: a.profit,
+             margin: a.margin, avg: a.avg, commission, ad, payout: commission - ad };
+  }).filter(r => r.n > 0);
+
+  const k = S.mgrSort.key, dir = S.mgrSort.dir;
+  rows.sort((a, b) => (a[k] > b[k] ? 1 : a[k] < b[k] ? -1 : 0) * dir);
+  const maxP = Math.max(...rows.map(r => r.profit), 1);
+
+  const cols = [
+    ['m', 'Менеджер', 0], ['n', 'Продаж', 1], ['pax', 'Туристов', 1],
+    ['gross', 'Оборот', 1], ['profit', 'Прибыль', 1], ['margin', 'Маржа', 1],
+    ['avg', 'Ср. чек', 1], ['commission', 'Комиссия 50%', 1],
+    ['ad', 'Реклама', 1], ['payout', 'К выплате', 1]
+  ];
+
+  const totals = rows.reduce((t, r) => {
+    t.n += r.n; t.pax += r.pax; t.gross += r.gross; t.profit += r.profit;
+    t.commission += r.commission; t.ad += r.ad; t.payout += r.payout; return t;
+  }, { n: 0, pax: 0, gross: 0, profit: 0, commission: 0, ad: 0, payout: 0 });
+
+  el.innerHTML = `
+    <h2 class="sec">Рейтинг менеджеров</h2>
+    <p class="sec-note">Комиссия — 50% от прибыли по сделке. Реклама — доля расхода на таргет (${money(adShare(S.period === 'all' ? PERIODS[PERIODS.length - 1] : S.period))} с человека за месяц, только за месяцы с продажами). К выплате = комиссия − реклама. Клик по строке открывает данные менеджера.</p>
+    <div class="tw"><table id="mgrTbl">
+      <thead><tr>${cols.map(c =>
+        `<th class="s ${c[2] ? 'num' : ''}" data-k="${c[0]}" data-on="${k === c[0] ? 1 : 0}">${c[1]}${k === c[0] ? (dir < 0 ? ' ↓' : ' ↑') : ''}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(r => `<tr class="click" data-m="${esc(r.m)}">
+        <td class="name">${esc(r.m)}${isActive(r.m) ? ''
+          : ' <span style="color:var(--dim);font-weight:400;font-size:11.5px">· не работает</span>'}</td>
+        <td class="num">${r.n}</td><td class="num">${r.pax}</td>
+        <td class="num">${money(r.gross)}</td>
+        <td class="num barcell">${money(r.profit)}
+          <span class="bg"></span><span class="fg" style="width:calc((100% - 28px) * ${(r.profit / maxP).toFixed(3)})"></span></td>
+        <td class="num">${pct(r.margin)}</td>
+        <td class="num">${money(r.avg)}</td>
+        <td class="num">${money(r.commission)}</td>
+        <td class="num" style="color:var(--neg)">−${money(r.ad).replace('−', '')}</td>
+        <td class="num" style="color:${r.payout < 0 ? 'var(--neg)' : 'var(--accent)'}">${money(r.payout)}</td></tr>`).join('')}
+      <tr><td class="name">Итого</td><td class="num">${totals.n}</td><td class="num">${totals.pax}</td>
+        <td class="num">${money(totals.gross)}</td><td class="num">${money(totals.profit)}</td>
+        <td class="num">${pct(totals.gross ? totals.profit / totals.gross * 100 : null)}</td>
+        <td class="num">${money(totals.n ? totals.gross / totals.n : 0)}</td>
+        <td class="num">${money(totals.commission)}</td>
+        <td class="num" style="color:var(--neg)">−${money(totals.ad).replace('−', '')}</td>
+        <td class="num" style="color:var(--accent)">${money(totals.payout)}</td></tr>
+      </tbody></table></div>
+
+    <h2 class="sec">Динамика по месяцам</h2>
+    <p class="sec-note">Прибыль агентства помесячно и вклад каждого менеджера. Отдельные графики вместо одного общего — так видно форму каждого, а не только самого крупного.</p>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-h"><span class="card-t">Прибыль агентства</span><span class="card-s">май — июль 2026</span></div>
+      ${monthChart(DATA.deals)}
+    </div>
+    <div class="sm">${statNames().filter(m => DATA.deals.some(d => d.manager === m)).sort().map(m => smallCard(m)).join('')}</div>
+
+    <h2 class="sec">Кто на чём зарабатывает</h2>
+    <p class="sec-note">Прибыль по каждой паре «менеджер — направление». Видно специализацию: входящую заявку логично отдать тому, кто это направление уже возит.</p>
+    ${matrix(list)}`;
+
+  document.querySelectorAll('#mgrTbl th.s').forEach(th => {
+    th.onclick = () => {
+      const key = th.dataset.k;
+      S.mgrSort = { key, dir: S.mgrSort.key === key ? -S.mgrSort.dir : -1 };
+      render();
+    };
+  });
+  document.querySelectorAll('#mgrTbl tr.click').forEach(tr => {
+    tr.onclick = () => { S.role = tr.dataset.m; S.dealsAll = false; S.filter = null; render(); scrollTo({ top: 0, behavior: 'smooth' }); };
+  });
+  bindSmall();
+}
+
+// Матрица менеджер × направление. Тепловая карта: одна шкала тона,
+// больше прибыли — светлее. Подпись внутри ячейки меняет цвет на тёмный,
+// когда фон становится слишком светлым для белого текста.
+function matrix(list) {
+  const dirs = byKey(list, 'direction').filter(r => r.profit > 0).slice(0, 7);
+  const mgrs = statNames().filter(m => list.some(d => d.manager === m));
+  if (!dirs.length || !mgrs.length) return '<div class="empty">Нет данных за период</div>';
+
+  // Всё, что не попало в топ-7 направлений, сворачивается в колонку
+  // «Прочие»: иначе у менеджера с узкой специализацией строка выглядит
+  // пустой, хотя он продавал.
+  const top = new Set(dirs.map(d => d.key));
+  const cols = dirs.map(d => d.key).concat(['Прочие']);
+  const cell = {};
+  list.forEach(d => {
+    const dir = d.direction || '—';
+    const k = d.manager + '|' + (top.has(dir) ? dir : 'Прочие');
+    cell[k] = (cell[k] || 0) + (d.profit || 0);
+  });
+  const max = Math.max(...Object.values(cell), 1);
+
+  const rowTotal = m => cols.reduce((s, c) => s + (cell[m + '|' + c] || 0), 0);
+  const ordered = mgrs.slice().sort((a, b) => rowTotal(b) - rowTotal(a));
+
+  const head = `<tr><th class="rowh">Менеджер</th>
+    ${cols.map(c => `<th>${esc(c)}</th>`).join('')}<th>Итого</th></tr>`;
+
+  const body = ordered.map(m => `<tr><th class="rowh">${esc(m)}</th>
+    ${cols.map(c => {
+      const v = cell[m + '|' + c] || 0;
+      if (!v) return '<td class="zero">—</td>';
+      const k = v / max;                        // 0…1
+      const bg = `rgba(190,242,100,${(0.10 + k * 0.85).toFixed(3)})`;
+      const ink = k > 0.45 ? '#12160B' : 'var(--text)';
+      return `<td style="background:${bg};color:${ink};font-weight:${k > 0.45 ? 600 : 400}">${esc(money(v))}</td>`;
+    }).join('')}
+    <td style="background:var(--raised2);color:var(--text);font-weight:600">${esc(money(rowTotal(m)))}</td></tr>`).join('');
+
+  return `<div class="tw" style="padding:14px"><table class="mx">${head}${body}</table></div>`;
+}
+
+function renderMyDynamics() {
+  return `<h2 class="sec">Моя динамика</h2>
+    <p class="sec-note">Прибыль по месяцам — только по моим сделкам.</p>
+    <div class="card">
+      <div class="card-h"><span class="card-t">${esc(S.role)}</span><span class="card-s">май — июль 2026</span></div>
+      ${monthChart(DATA.deals.filter(d => d.manager === S.role))}
+    </div>`;
+}
+
+/* столбцы по месяцам — HTML, не SVG */
+function monthChart(deals) {
+  const vals = PERIODS.map(p => {
+    const rows = deals.filter(d => d.period === p);
+    return { p, v: rows.reduce((s, d) => s + (d.profit || 0), 0), n: rows.length };
+  });
+  const max = Math.max(...vals.map(v => v.v), 1);
+  const H = 164;
+  const gl = [0, .5, 1].map(f =>
+    `<span class="gl" style="bottom:${22 + f * (H - 22)}px"></span>`).join('');
+  const cols = vals.map((v, i) => {
+    const h = Math.max(Math.round((H - 22) * (v.v / max)), 3);
+    return `<div class="col mb" data-t="${esc(PERIOD_NAMES[v.p])}|${esc(money(v.v))}|${v.n} сделок">
+      <span class="cv">${esc(money(v.v))}</span>
+      <span class="cb" style="height:${h}px;background:${rampAt(vals.length - 1 - i, vals.length)}"></span>
+      <span class="cl">${esc(PERIOD_NAMES[v.p])}</span></div>`;
+  }).join('');
+  return `<div class="cols">${gl}${cols}</div>`;
+}
+
+function smallCard(m) {
+  const own = DATA.deals.filter(d => d.manager === m);
+  const vals = PERIODS.map(p => own.filter(d => d.period === p)
+    .reduce((s, d) => s + (d.profit || 0), 0));
+  const tot = vals.reduce((a, b) => a + b, 0);
+  // Общий потолок для всех карточек — иначе высоты между менеджерами
+  // несравнимы и маленький результат выглядит как большой.
+  const max = Math.max(...statNames().map(mm => Math.max(...PERIODS.map(p =>
+    DATA.deals.filter(d => d.manager === mm && d.period === p)
+      .reduce((s, d) => s + (d.profit || 0), 0)))), 1);
+  const best = Math.max(...vals);
+  const bars = vals.map((v, i) =>
+    `<span class="mb2 mb" data-t="${esc(m)} · ${esc(PERIOD_NAMES[PERIODS[i]])}|${esc(money(v))}|"
+       style="height:${Math.max(Math.round(52 * v / max), 2)}px;
+              background:${v === best && v > 0 ? 'var(--r5)' : 'var(--r2)'}"></span>`).join('');
+  return `<div class="smc"><div class="smn">${esc(m)}</div>
+    <div class="smv">${esc(money(tot))} за 3 мес.</div>
+    <div class="mini" role="img" aria-label="Прибыль ${esc(m)} по месяцам">${bars}</div></div>`;
+}
+
+function bindSmall() {
+  document.querySelectorAll('.mb').forEach(g => {
+    g.onmousemove = e => {
+      const [a, b, c] = g.dataset.t.split('|');
+      showTip(e, `<b>${a}</b><span>${b}${c ? ' · ' + c : ''}</span>`);
+    };
+    g.onmouseleave = hideTip;
+  });
+}
+
+/* ---------- рейтинги направлений / операторов ---------- */
+const LIMIT = 8;   // сколько строк показывать до «Прочих»
+
+const METRICS = {
+  profit: { t: 'Прибыли', val: r => r.profit, fmt: r => money(r.profit) },
+  margin: { t: 'Марже', val: r => r.gross > 0 ? r.profit / r.gross * 100 : 0,
+            fmt: r => pct(r.gross > 0 ? r.profit / r.gross * 100 : null) },
+  gross:  { t: 'Обороту', val: r => r.gross, fmt: r => money(r.gross) }
+};
+
+function renderRanks() {
+  const list = scope(S.period);
+  const M = METRICS[S.rankMetric];
+
+  seg(document.getElementById('metricSeg'),
+    Object.keys(METRICS).map(k => ({ v: k, t: METRICS[k].t })),
+    S.rankMetric, v => { S.rankMetric = v; render(); });
+
+  document.getElementById('rankNote').innerHTML = S.rankMetric === 'margin'
+    ? `Маржа — какая доля оборота осталась агентству. Показаны только те, где не меньше ${MIN_DEALS_FOR_MARGIN} сделок: по одной сделке о выгодности судить нельзя.`
+    : 'Направления и туроператоры по вкладу в результат. Шкала одного тона: чем светлее полоса, тем больше вклад. Строка фильтрует таблицу сделок ниже.';
+
+  const fill = (elId, key, cntId) => {
+    let all = byKey(list, key).filter(r => r.profit > 0);
+    if (S.rankMetric === 'margin') all = all.filter(r => r.n >= MIN_DEALS_FOR_MARGIN);
+    all.sort((a, b) => M.val(b) - M.val(a));
+    document.getElementById(cntId).textContent = all.length + ' шт.';
+    const expanded = S.expand[key];
+    const hidden = all.length - LIMIT;
+
+    let rows = (expanded || hidden <= 0) ? all : all.slice(0, LIMIT);
+    const max = Math.max(...all.map(M.val), 1);
+
+    let html = rows.map((r, i) => {
+      const on = S.filter && S.filter.kind === key && S.filter.value === r.key;
+      return `<div class="rrow" role="button" tabindex="0" aria-pressed="${on}"
+           data-kind="${key}" data-key="${esc(r.key)}"
+           data-t="${esc(r.key)}|${esc(money(r.profit))} прибыли · маржа ${esc(pct(r.gross > 0 ? r.profit / r.gross * 100 : null))}|${r.n} сделок · оборот ${esc(money(r.gross))}">
+        <span class="rn">${esc(r.key)}</span>
+        <span class="rt"><i style="width:${Math.max(M.val(r) / max * 100, 1.5)}%;background:${rampAt(i, rows.length)}"></i></span>
+        <span class="rv">${esc(M.fmt(r))}</span></div>`;
+    }).join('');
+
+    // «Прочие» — не заглушка, а переключатель: раскрывает оставшиеся строки.
+    if (hidden > 0) {
+      const rest = all.slice(LIMIT);
+      const restProfit = rest.reduce((s, r) => s + r.profit, 0);
+      const restGross = rest.reduce((s, r) => s + r.gross, 0);
+      const restDeals = rest.reduce((s, r) => s + r.n, 0);
+      const restVal = S.rankMetric === 'margin'
+        ? (restGross > 0 ? restProfit / restGross * 100 : 0)
+        : (S.rankMetric === 'gross' ? restGross : restProfit);
+      const restLabel = S.rankMetric === 'margin' ? pct(restVal) : money(restVal);
+      html += `<div class="rrow more" role="button" tabindex="0" data-toggle="${key}"
+           data-t="${expanded ? 'Свернуть список' : 'Показать ещё ' + hidden}|${esc(money(restProfit))} прибыли|${restDeals} сделок">
+        <span class="rn">${expanded ? '← Свернуть' : 'Прочие (' + hidden + ') — показать'}</span>
+        ${expanded ? '<span></span><span></span>'
+          : `<span class="rt"><i style="width:${Math.max(restVal / max * 100, 1.5)}%;background:var(--border-lt)"></i></span>
+             <span class="rv">${esc(restLabel)}</span>`}</div>`;
+    }
+
+    document.getElementById(elId).innerHTML = html || '<div class="empty">Нет данных за период</div>';
+  };
+
+  fill('dirs', 'direction', 'dirCnt');
+  fill('ops', 'operator', 'opCnt');
+
+  document.querySelectorAll('.rrow').forEach(r => {
+    r.onmousemove = e => {
+      const [a, b, c] = r.dataset.t.split('|');
+      showTip(e, `<b>${a}</b><span>${b}<br>${c}</span>`);
+    };
+    r.onmouseleave = hideTip;
+
+    const act = () => {
+      hideTip();
+      if (r.dataset.toggle) {
+        S.expand[r.dataset.toggle] = !S.expand[r.dataset.toggle];
+        render();
+        return;
+      }
+      // Повторный клик по выбранной строке снимает фильтр.
+      const same = S.filter && S.filter.kind === r.dataset.kind && S.filter.value === r.dataset.key;
+      S.filter = same ? null : { kind: r.dataset.kind, value: r.dataset.key };
+      S.dealsAll = false;
+      render();
+      if (!same) document.getElementById('dealsNote')
+        .scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    r.onclick = act;
+    r.onkeydown = e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(); }
+    };
+  });
+}
+
+/* ---------- сравнение двух периодов ---------- */
+function renderCompare() {
+  if (!S.cmpA) {
+    S.cmpA = PERIODS[Math.max(PERIODS.length - 2, 0)];
+    S.cmpB = PERIODS[PERIODS.length - 1];
+  }
+  const A = agg(scope(S.cmpA)), B = agg(scope(S.cmpB));
+  const payout = per => (S.role === 'rop' ? adTotalFor(per) : adFor(S.role, per));
+  A.payout = A.profit * DATA.commission_rate - payout(S.cmpA);
+  B.payout = B.profit * DATA.commission_rate - payout(S.cmpB);
+
+  // Δ в процентах бессмысленна для доли: маржа сравнивается в пунктах.
+  const row = (label, a, b, fmt, unit) => {
+    const diff = b - a;
+    const rel = (unit === 'pp' || !a) ? null : diff / Math.abs(a) * 100;
+    const cls = Math.abs(diff) < 1e-9 ? 'delta-flat' : (diff > 0 ? 'delta-up' : 'delta-down');
+    const ar = Math.abs(diff) < 1e-9 ? '=' : (diff > 0 ? '↑' : '↓');
+    const d = unit === 'pp' ? Math.abs(diff).toFixed(1).replace('.', ',') + ' п.п.'
+            : unit === 'n'  ? nf.format(Math.abs(Math.round(diff)))
+            : money(Math.abs(diff));
+    return `<tr><td class="name">${label}</td>
+      <td class="num">${fmt(a)}</td><td class="num">${fmt(b)}</td>
+      <td class="num ${cls}">${ar} ${d}${rel !== null ? ' · ' + Math.abs(rel).toFixed(0) + '%' : ''}</td></tr>`;
+  };
+
+  const mgrRows = S.role !== 'rop' ? '' : statNames().sort().map(m => {
+    const pa = scope(S.cmpA).filter(d => d.manager === m).reduce((s, d) => s + (d.profit || 0), 0);
+    const pb = scope(S.cmpB).filter(d => d.manager === m).reduce((s, d) => s + (d.profit || 0), 0);
+    return (pa || pb) ? row(m, pa, pb, money) : '';
+  }).join('');
+
+  document.getElementById('cmpWrap').innerHTML = `
+    <h2 class="sec">Сравнение периодов</h2>
+    <p class="sec-note">Два любых месяца рядом — видно не только «выросло или упало», но и за счёт чего: объёма, качества сделок или количества туристов.</p>
+    <div class="cmp-heads">
+      <div><span class="ctl-lbl">Было</span><div class="seg mini" id="cmpASeg"></div></div>
+      <div><span class="ctl-lbl">Стало</span><div class="seg mini" id="cmpBSeg"></div></div>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Показатель</th>
+        <th class="num">${PERIOD_NAMES[S.cmpA] || S.cmpA}</th>
+        <th class="num">${PERIOD_NAMES[S.cmpB] || S.cmpB}</th>
+        <th class="num">Изменение</th></tr></thead>
+      <tbody>
+        ${row('Оборот', A.gross, B.gross, money)}
+        ${row('Прибыль', A.profit, B.profit, money)}
+        ${row('Маржа', A.margin || 0, B.margin || 0, v => pct(v), 'pp')}
+        ${row('Сделок', A.n, B.n, v => nf.format(v), 'n')}
+        ${row('Туристов', A.pax, B.pax, v => nf.format(v), 'n')}
+        ${row('Средний чек', A.avg, B.avg, money)}
+        ${row(S.role === 'rop' ? 'К выплате' : 'Моя выплата', A.payout, B.payout, money)}
+        ${mgrRows ? `<tr><td class="name" colspan="4" style="color:var(--dim);
+            font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+            text-transform:uppercase;font-weight:400">Прибыль по менеджерам</td></tr>` + mgrRows : ''}
+      </tbody></table></div>`;
+
+  const opts = PERIODS.map(p => ({ v: p, t: PERIOD_NAMES[p] || p }));
+  seg(document.getElementById('cmpASeg'), opts, S.cmpA, v => { S.cmpA = v; render(); });
+  seg(document.getElementById('cmpBSeg'), opts, S.cmpB, v => { S.cmpB = v; render(); });
+}
+
+/* ---------- таблица сделок ---------- */
+function renderDeals() {
+  let list = scope(S.period).slice();
+  if (S.filter) list = list.filter(d => (d[S.filter.kind] || '—') === S.filter.value);
+  const marginOf = d => (d.profit === null || !d.gross) ? null : d.profit / d.gross * 100;
+  const lowCount = list.filter(d => { const m = marginOf(d); return m !== null && m < MARGIN_LOW; }).length;
+  if (S.onlyLow) list = list.filter(d => { const m = marginOf(d); return m !== null && m < MARGIN_LOW; });
+  const k = S.dealSort.key, dir = S.dealSort.dir;
+  const cellVal = (d, key) => key === 'margin' ? marginOf(d) : d[key];
+  list.sort((a, b) => {
+    const x = cellVal(a, k), y = cellVal(b, k);
+    if (x === null || x === undefined) return 1;
+    if (y === null || y === undefined) return -1;
+    return (x > y ? 1 : x < y ? -1 : 0) * dir;
+  });
+  const shown = S.dealsAll ? list : list.slice(0, 12);
+
+  const cols = [
+    ['client', 'Клиент', 0], ['manager', 'Менеджер', 0], ['direction', 'Направление', 0],
+    ['operator', 'Оператор', 0], ['pax', 'Чел.', 1], ['depart_at', 'Вылет', 0],
+    ['gross', 'Брутто', 1], ['net', 'Нетто', 1], ['profit', 'Прибыль', 1],
+    ['margin', 'Маржа', 1], ['operator_debt', 'Долг оператору', 1]
+  ];
+
+  const KIND = { direction: 'Направление', operator: 'Туроператор' };
+  document.getElementById('dealsNote').innerHTML =
+    (S.role === 'rop' ? 'Все сделки' : 'Мои сделки') + ' за ' +
+    (S.period === 'all' ? 'май — июль' : (PERIOD_NAMES[S.period] || '').toLowerCase()) +
+    ' — ' + list.length + ' шт. Столбцы сортируются, строки в рейтингах выше фильтруют этот список.' +
+    `<br><span style="display:inline-flex;gap:8px;flex-wrap:wrap;margin-top:10px">` +
+    (S.filter ? `<button class="chip" id="clearFilter">
+        <b>${KIND[S.filter.kind]}:</b> ${esc(S.filter.value)} <x>×</x></button>` : '') +
+    (lowCount || S.onlyLow
+      ? `<button class="chip" id="lowBtn" style="${S.onlyLow ? '' :
+           'background:var(--raised);color:var(--warn);border:1px solid var(--border-lt)'}">
+           ${S.onlyLow ? '<b>Только</b> маржа ниже ' + MARGIN_LOW + '% <x>×</x>'
+                       : '⚠ ' + lowCount + ' сделок с маржой ниже ' + MARGIN_LOW + '%'}</button>`
+      : '') + '</span>';
+
+  const cf = document.getElementById('clearFilter');
+  if (cf) cf.onclick = () => { S.filter = null; S.dealsAll = false; render(); };
+  const lb = document.getElementById('lowBtn');
+  if (lb) lb.onclick = () => { S.onlyLow = !S.onlyLow; S.dealsAll = false; render(); };
+
+  document.getElementById('dealsTbl').innerHTML = `
+    <thead><tr>${cols.map(c =>
+      `<th class="s ${c[2] ? 'num' : ''}" data-k="${c[0]}" data-on="${k === c[0] ? 1 : 0}">${c[1]}${k === c[0] ? (dir < 0 ? ' ↓' : ' ↑') : ''}</th>`).join('')}</tr></thead>
+    <tbody>${shown.map(d => `<tr>
+      <td class="name">${esc(maskName(d.client))}</td>
+      <td>${esc(d.manager)}</td>
+      <td>${esc(d.direction || '—')}</td>
+      <td>${esc(d.operator || '—')}</td>
+      <td class="num">${d.pax}</td>
+      <td>${dmy(d.depart_at)}</td>
+      <td class="num">${money(d.gross)}</td>
+      <td class="num">${d.net === null ? '<span style="color:var(--warn)">не указано</span>' : money(d.net)}</td>
+      <td class="num" style="color:${d.profit === null ? 'var(--warn)' : 'var(--text)'}">${d.profit === null ? '—' : money(d.profit)}</td>
+      ${(() => { const m = marginOf(d);
+        if (m === null) return '<td class="num low">—</td>';
+        const lo = m < MARGIN_LOW;
+        return `<td class="num ${lo ? 'low lowbg' : ''}">${lo ? '⚠ ' : ''}${pct(m)}</td>`;
+      })()}
+      <td class="num" style="color:${d.operator_debt ? 'var(--neg)' : 'var(--dim)'}">${d.operator_debt ? money(d.operator_debt) : '—'}</td>
+    </tr>`).join('')}</tbody>`;
+
+  const btn = document.getElementById('moreBtn');
+  btn.hidden = list.length <= 12 || S.dealsAll;
+  btn.textContent = 'Показать все ' + list.length;
+  btn.onclick = () => { S.dealsAll = true; render(); };
+
+  document.querySelectorAll('#dealsTbl th.s').forEach(th => {
+    th.onclick = () => {
+      const key = th.dataset.k;
+      S.dealSort = { key, dir: S.dealSort.key === key ? -S.dealSort.dir : -1 };
+      render();
+    };
+  });
+}
+
+/* ---------- команда ---------- */
+function renderTeam() {
+  const el = document.getElementById('teamWrap');
+  if (S.role !== 'rop') { el.innerHTML = ''; return; }
+
+  const stat = n => {
+    const own = DATA.deals.filter(d => d.manager === n);
+    const dates = own.map(d => d.booked_at || d.inquiry_date).filter(Boolean).sort();
+    return {
+      n: own.length,
+      profit: own.reduce((s, d) => s + (d.profit || 0), 0),
+      first: dates[0] || null,
+      last: dates[dates.length - 1] || null
+    };
+  };
+
+  const rows = S.team.slice()
+    .sort((a, b) => (b.active - a.active) || a.name.localeCompare(b.name))
+    .map(t => {
+      const st = stat(t.name);
+      return `<tr class="${t.active ? '' : 'off'}">
+        <td class="name">${esc(t.name)}</td>
+        <td class="alias">${t.aliases.length ? t.aliases.map(esc).join(', ')
+          : '<span style="color:var(--warn)">не задано</span>'}</td>
+        <td class="num">${st.n}</td>
+        <td class="num">${st.n ? esc(money(st.profit)) : '—'}</td>
+        <td>${st.first ? dmy(st.first) + ' — ' + dmy(st.last) : '—'}</td>
+        <td><span class="pill ${t.active ? 'on' : 'offp'}">${t.active ? 'работает' : 'ушёл'}</span></td>
+        <td class="num">
+          <button class="btn ghost" data-toggle-team="${esc(t.name)}">${t.active ? 'Убрать' : 'Вернуть'}</button>
+          ${(t.manual && !st.n) ? `<button class="btn ghost danger" data-del-team="${esc(t.name)}">Удалить</button>` : ''}
+        </td></tr>`;
+    }).join('');
+
+  el.innerHTML = `
+    <h2 class="sec">Команда</h2>
+    <p class="sec-note">Кто есть в системе и под кем можно войти. Сотрудники приходят и уходят, поэтому список живёт отдельно от продаж.</p>
+
+    <div class="flag info"><span class="fi">Как это работает</span><div>
+      <b>«Убрать» не удаляет продажи.</b> Ушедший сотрудник пропадает из списка входов
+      и из тех периодов, где у него нет сделок, но его прошлые продажи остаются в
+      отчётах. Иначе итог за май изменился бы задним числом, а расхождение в
+      закрытом периоде — худшее, что может случиться с отчётом.
+      В рейтинге такой человек помечен «не работает», и войти под ним нельзя.</div></div>
+
+    <div class="tw" style="margin-top:16px"><table>
+      <thead><tr>
+        <th>Сотрудник</th><th>Как записан в таблице</th><th class="num">Сделок</th>
+        <th class="num">Прибыль всего</th><th>Первая — последняя сделка</th><th>Статус</th><th></th>
+      </tr></thead>
+      <tbody>${rows}</tbody></table></div>
+
+    <div class="addrow">
+      <div class="fld"><label for="newName">Имя сотрудника</label>
+        <input id="newName" placeholder="Нодира" autocomplete="off"></div>
+      <div class="fld"><label for="newAlias">Как записан в таблице</label>
+        <input id="newAlias" placeholder="Нодира, NODIRA, нодира" autocomplete="off"></div>
+      <button class="btn" id="addBtn">Добавить</button>
+    </div>
+    <div class="form-err" id="addErr" hidden></div>
+    <p class="sec-note" style="margin-top:10px">Псевдонимы — все написания имени в отчёте, через запятую. Без них импорт не свяжет строки с сотрудником: в вашем файле одна Сарвиноз встречается как «Сарвиноз», «сарвиноз» и «SARVINOZ».</p>`;
+
+  el.querySelectorAll('[data-toggle-team]').forEach(b => {
+    b.onclick = () => {
+      const t = S.team.find(x => x.name === b.dataset.toggleTeam);
+      t.active = !t.active;
+      if (!t.active && S.role === t.name) S.role = 'rop';   // сами себя не запираем
+      saveTeam(); render();
+    };
+  });
+  el.querySelectorAll('[data-del-team]').forEach(b => {
+    b.onclick = () => {
+      S.team = S.team.filter(x => x.name !== b.dataset.delTeam);
+      saveTeam(); render();
+    };
+  });
+
+  const nameEl = document.getElementById('newName');
+  const aliasEl = document.getElementById('newAlias');
+  const errEl = document.getElementById('addErr');
+  const add = () => {
+    const name = nameEl.value.trim();
+    const aliases = aliasEl.value.split(',').map(x => x.trim()).filter(Boolean);
+    const fail = m => { errEl.textContent = m; errEl.hidden = false; };
+    if (!name) return fail('Укажите имя сотрудника.');
+    if (S.team.some(t => t.name.toLowerCase() === name.toLowerCase()))
+      return fail('Такой сотрудник уже есть в списке.');
+    const clash = S.team.find(t => t.aliases.some(a =>
+      aliases.some(x => x.toLowerCase() === a.toLowerCase())));
+    if (clash) return fail(`Псевдоним уже занят: он ведёт на «${clash.name}».`);
+    S.team.push({ name, aliases: aliases.length ? aliases : [name], active: true, manual: true });
+    saveTeam(); render();
+  };
+  document.getElementById('addBtn').onclick = add;
+  [nameEl, aliasEl].forEach(i => {
+    i.onkeydown = e => { if (e.key === 'Enter') add(); };
+    i.oninput = () => { errEl.hidden = true; };
+  });
+}
+
+/* ---------- качество данных ---------- */
+function renderQuality() {
+  if (S.role !== 'rop') { document.getElementById('quality').innerHTML = ''; return; }
+  document.getElementById('quality').innerHTML = `
+    <h2 class="sec">Что нашлось при переносе из Excel</h2>
+    <div class="flag warn"><span class="fi">Свод</span><div>
+      <b>Ручной свод за июль недосчитал $273 прибыли.</b>
+      У Шахнозы в итог попали сделки на $75 и $88, а сделка на $143 в сумму не вошла;
+      ещё $30 и $100 потерялись у Азизы и Сарвиноз. Считает дашборд — расхождения исчезают,
+      а вместе с ними и споры о зарплате.</div></div>
+    <div class="flag warn"><span class="fi">Строки</span><div>
+      <b>${DATA.issues.length} замечания к исходным данным.</b>
+      <ul>${DATA.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
+      В рабочей версии такие строки не теряются молча: они попадают в журнал импорта,
+      и вы видите, что именно нужно поправить в таблице.</div></div>
+    <div class="flag info"><span class="fi">Чего нет</span><div>
+      В отчёте фиксируются только состоявшиеся продажи — <b>обращений клиентов в нём нет</b>.
+      Поэтому конверсию и воронку посчитать не из чего: неизвестно, сколько человек написало
+      и скольким не продали. Это единственная колонка, которую стоит добавить в таблицу —
+      она откроет самую полезную для РОПа аналитику.</div></div>`;
+}
+
+/* ---------- сборка ---------- */
+function render() {
+  if (!S.team) S.team = loadTeam();
+  if (S.role !== 'rop' && !isActive(S.role)) S.role = 'rop';
+  renderControls();
+  renderCtx();
+  renderKpis();
+  renderAttention();
+  renderRop();
+  renderRanks();
+  renderCompare();
+  renderDeals();
+  renderTeam();
+  renderQuality();
+}
+render();
+</script>
