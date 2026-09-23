@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Пульт продаж Turon</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -300,6 +305,8 @@
   }
   @media (prefers-reduced-motion:reduce){ *{ transition:none!important; } }
 </style>
+</head>
+<body>
 
 <div class="top">
   <div class="top-in">
@@ -348,7 +355,7 @@
   <div id="quality"></div>
 
   <div class="foot">
-    <span>Источник: ежемесячный отчёт в Excel · май–июль 2026 · 105 сделок</span>
+    <span>Источник: ежемесячный отчёт в Excel · май–август 2026 · 139 сделок</span>
     <span>Прототип на реальных данных</span>
   </div>
 </div>
@@ -360,7 +367,7 @@ const DATA = /*__DATA__*/null;
 
 const S = {
   role: 'rop',
-  period: '2026-07',
+  period: '2026-08',
   currency: 'USD',
   rate: 12800,
   mask: false,
@@ -382,7 +389,7 @@ const MARGIN_LOW = 5;
 // не значит, что оператор выгодный.
 const MIN_DEALS_FOR_MARGIN = 3;
 
-const PERIOD_NAMES = { '2026-05':'Май', '2026-06':'Июнь', '2026-07':'Июль' };
+const PERIOD_NAMES = { '2026-05':'Май', '2026-06':'Июнь', '2026-07':'Июль', '2026-08':'Август' };
 const PERIODS = [...new Set(DATA.deals.map(d => d.period))].sort();
 const DATA_MANAGERS = [...new Set(DATA.deals.map(d => d.manager))].sort();
 
@@ -426,7 +433,7 @@ const loginNames = () => S.team.filter(t => t.active).map(t => t.name);
 // Кого учитывать в статистике: всех, включая ушедших, если у них есть сделки.
 const statNames  = () => [...new Set(S.team.map(t => t.name).concat(DATA_MANAGERS))];
 const isActive   = n => { const t = S.team.find(x => x.name === n); return t ? t.active : true; };
-const TODAY = new Date('2026-08-28');
+const TODAY = new Date('2026-08-31');
 
 /* ---------- формат ---------- */
 const nf = new Intl.NumberFormat('ru-RU');
@@ -475,7 +482,7 @@ function agg(list) {
     a.opDebt += d.operator_debt || 0;
     if (d.gaps && d.gaps.length) a.gaps++;
   }
-  a.avg = a.n ? a.gross / a.n : 0;
+  a.avg = a.pax ? a.gross / a.pax : 0;
   a.margin = a.gross ? a.profit / a.gross * 100 : null;
   return a;
 }
@@ -487,8 +494,11 @@ const adShare = p => (DATA.ad_spend[p] || 0) / DATA.ad_spend_split;
 // вышедший в июле, платит и за май с июнем.
 function adFor(manager, period) {
   const months = period === 'all' ? PERIODS : [period];
-  return months.reduce((s, p) =>
-    s + (DATA.deals.some(d => d.manager === manager && d.period === p) ? adShare(p) : 0), 0);
+  return months.reduce((s, p) => {
+    const reported = DATA.manager_ad_deductions && DATA.manager_ad_deductions[p];
+    if (reported) return s + (reported[manager] || 0);
+    return s + (DATA.deals.some(d => d.manager === manager && d.period === p) ? adShare(p) : 0);
+  }, 0);
 }
 function adTotalFor(period) {
   const mgrs = [...new Set(scope(period).map(d => d.manager))];
@@ -589,13 +599,13 @@ function renderKpis() {
     `<div class="card kpi"><div class="k-l">Оборот</div>
       <div class="k-v">${money(cur.gross)}</div>
       ${prev ? delta(dlt(cur.gross, prev.gross), prevName)
-             : `<div class="k-s">за ${S.period === 'all' ? 'май — июль' : (PERIOD_NAMES[S.period] || '').toLowerCase()}</div>`}</div>`,
+             : `<div class="k-s">за ${S.period === 'all' ? 'май — август' : (PERIOD_NAMES[S.period] || '').toLowerCase()}</div>`}</div>`,
     `<div class="card kpi"><div class="k-l">Продано туров</div>
       <div class="k-dual">
         <span><b>${cur.n}</b><s>сделок</s></span>
         <span><b>${cur.pax}</b><s>туристов</s></span>
       </div>
-      <div class="k-s">средний чек ${money(cur.avg)} за сделку</div></div>`,
+      <div class="k-s">средний чек ${money(cur.avg)} на туриста</div></div>`,
     `<div class="card kpi"><div class="k-l">${S.role === 'rop' ? 'К выплате менеджерам' : 'Моя выплата'}</div>
       <div class="k-v">${money(payout)}</div>
       <div class="k-s">комиссия ${money(commission)} − реклама ${money(adTotal)}</div></div>`
@@ -637,7 +647,7 @@ function renderAttention() {
 
   document.getElementById('attWrap').innerHTML = `
     <h2 class="sec">Требует внимания</h2>
-    <p class="sec-note">То, что в Excel не видно без ручного просмотра всех строк: незакрытые долги и ближайшие вылеты. Сегодня — 28 августа 2026.</p>
+    <p class="sec-note">То, что в Excel не видно без ручного просмотра всех строк: незакрытые долги и ближайшие вылеты. Состояние на конец августа 2026.</p>
     <div class="grid g2">
       ${block('Мы должны туроператорам', opDebt.length,
         opDebt.length ? money(sum(opDebt, 'operator_debt')) + ' · ' + opDebt.length + ' шт.' : 'чисто',
@@ -666,10 +676,6 @@ function renderAttention() {
               <div class="amt">${esc(money(v.gross))}</div></div>`;
           }).join('') || '<div class="empty">Вперёд ничего не продано</div>'}
         </div>
-        <div class="flag warn" style="margin-top:14px"><span class="fi">Важно</span><div>
-          Цифра занижена: в файле есть листы только по июль, августовские брони
-          в него ещё не попали. На полных данных это одна из главных метрик
-          руководителя — чем отдел живёт в следующем месяце.</div></div>
       </div>
       ${block('Ближайшие вылеты', soon.length, soon.length + ' впереди',
         soon.slice(0, 6).map(d => item('g', '✈', maskName(d.client),
@@ -678,7 +684,7 @@ function renderAttention() {
     </div>
     <div class="grid g2" style="margin-top:14px">
       ${S.role === 'rop' ? block('Расход на таргетированную рекламу',
-        0, money(PERIODS.reduce((s, p) => s + (DATA.ad_spend[p] || 0), 0)) + ' за 3 мес.',
+        0, money(PERIODS.reduce((s, p) => s + (DATA.ad_spend[p] || 0), 0)) + ` за ${PERIODS.length} мес.`,
         PERIODS.map(p => {
           const on = (S.period === p || S.period === 'all');
           return `<div class="att-i"${on ? '' : ' style="opacity:.45"'}>
@@ -711,7 +717,7 @@ function renderRop() {
   const cols = [
     ['m', 'Менеджер', 0], ['n', 'Продаж', 1], ['pax', 'Туристов', 1],
     ['gross', 'Оборот', 1], ['profit', 'Прибыль', 1], ['margin', 'Маржа', 1],
-    ['avg', 'Ср. чек', 1], ['commission', 'Комиссия 50%', 1],
+    ['avg', 'Ср. чек / турист', 1], ['commission', 'Комиссия 50%', 1],
     ['ad', 'Реклама', 1], ['payout', 'К выплате', 1]
   ];
 
@@ -722,7 +728,7 @@ function renderRop() {
 
   el.innerHTML = `
     <h2 class="sec">Рейтинг менеджеров</h2>
-    <p class="sec-note">Комиссия — 50% от прибыли по сделке. Реклама — доля расхода на таргет (${money(adShare(S.period === 'all' ? PERIODS[PERIODS.length - 1] : S.period))} с человека за месяц, только за месяцы с продажами). К выплате = комиссия − реклама. Клик по строке открывает данные менеджера.</p>
+    <p class="sec-note">Комиссия — 50% от прибыли по сделке. Рекламное удержание берётся из расчётной таблицы Excel по каждому менеджеру отдельно. К выплате = комиссия − реклама. Клик по строке открывает данные менеджера.</p>
     <div class="tw"><table id="mgrTbl">
       <thead><tr>${cols.map(c =>
         `<th class="s ${c[2] ? 'num' : ''}" data-k="${c[0]}" data-on="${k === c[0] ? 1 : 0}">${c[1]}${k === c[0] ? (dir < 0 ? ' ↓' : ' ↑') : ''}</th>`).join('')}</tr></thead>
@@ -736,12 +742,12 @@ function renderRop() {
         <td class="num">${pct(r.margin)}</td>
         <td class="num">${money(r.avg)}</td>
         <td class="num">${money(r.commission)}</td>
-        <td class="num" style="color:var(--neg)">−${money(r.ad).replace('−', '')}</td>
+        <td class="num" style="color:${r.ad ? 'var(--neg)' : 'var(--muted)'}">${r.ad ? '−' + money(r.ad).replace('−', '') : money(0)}</td>
         <td class="num" style="color:${r.payout < 0 ? 'var(--neg)' : 'var(--accent)'}">${money(r.payout)}</td></tr>`).join('')}
       <tr><td class="name">Итого</td><td class="num">${totals.n}</td><td class="num">${totals.pax}</td>
         <td class="num">${money(totals.gross)}</td><td class="num">${money(totals.profit)}</td>
         <td class="num">${pct(totals.gross ? totals.profit / totals.gross * 100 : null)}</td>
-        <td class="num">${money(totals.n ? totals.gross / totals.n : 0)}</td>
+        <td class="num">${money(totals.pax ? totals.gross / totals.pax : 0)}</td>
         <td class="num">${money(totals.commission)}</td>
         <td class="num" style="color:var(--neg)">−${money(totals.ad).replace('−', '')}</td>
         <td class="num" style="color:var(--accent)">${money(totals.payout)}</td></tr>
@@ -750,7 +756,7 @@ function renderRop() {
     <h2 class="sec">Динамика по месяцам</h2>
     <p class="sec-note">Прибыль агентства помесячно и вклад каждого менеджера. Отдельные графики вместо одного общего — так видно форму каждого, а не только самого крупного.</p>
     <div class="card" style="margin-bottom:14px">
-      <div class="card-h"><span class="card-t">Прибыль агентства</span><span class="card-s">май — июль 2026</span></div>
+      <div class="card-h"><span class="card-t">Прибыль агентства</span><span class="card-s">май — август 2026</span></div>
       ${monthChart(DATA.deals)}
     </div>
     <div class="sm">${statNames().filter(m => DATA.deals.some(d => d.manager === m)).sort().map(m => smallCard(m)).join('')}</div>
@@ -817,7 +823,7 @@ function renderMyDynamics() {
   return `<h2 class="sec">Моя динамика</h2>
     <p class="sec-note">Прибыль по месяцам — только по моим сделкам.</p>
     <div class="card">
-      <div class="card-h"><span class="card-t">${esc(S.role)}</span><span class="card-s">май — июль 2026</span></div>
+      <div class="card-h"><span class="card-t">${esc(S.role)}</span><span class="card-s">май — август 2026</span></div>
       ${monthChart(DATA.deals.filter(d => d.manager === S.role))}
     </div>`;
 }
@@ -858,7 +864,7 @@ function smallCard(m) {
        style="height:${Math.max(Math.round(52 * v / max), 2)}px;
               background:${v === best && v > 0 ? 'var(--r5)' : 'var(--r2)'}"></span>`).join('');
   return `<div class="smc"><div class="smn">${esc(m)}</div>
-    <div class="smv">${esc(money(tot))} за 3 мес.</div>
+    <div class="smv">${esc(money(tot))} за ${PERIODS.length} мес.</div>
     <div class="mini" role="img" aria-label="Прибыль ${esc(m)} по месяцам">${bars}</div></div>`;
 }
 
@@ -1017,7 +1023,7 @@ function renderCompare() {
         ${row('Маржа', A.margin || 0, B.margin || 0, v => pct(v), 'pp')}
         ${row('Сделок', A.n, B.n, v => nf.format(v), 'n')}
         ${row('Туристов', A.pax, B.pax, v => nf.format(v), 'n')}
-        ${row('Средний чек', A.avg, B.avg, money)}
+        ${row('Средний чек на туриста', A.avg, B.avg, money)}
         ${row(S.role === 'rop' ? 'К выплате' : 'Моя выплата', A.payout, B.payout, money)}
         ${mgrRows ? `<tr><td class="name" colspan="4" style="color:var(--dim);
             font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
@@ -1056,7 +1062,7 @@ function renderDeals() {
   const KIND = { direction: 'Направление', operator: 'Туроператор' };
   document.getElementById('dealsNote').innerHTML =
     (S.role === 'rop' ? 'Все сделки' : 'Мои сделки') + ' за ' +
-    (S.period === 'all' ? 'май — июль' : (PERIOD_NAMES[S.period] || '').toLowerCase()) +
+    (S.period === 'all' ? 'май — август' : (PERIOD_NAMES[S.period] || '').toLowerCase()) +
     ' — ' + list.length + ' шт. Столбцы сортируются, строки в рейтингах выше фильтруют этот список.' +
     `<br><span style="display:inline-flex;gap:8px;flex-wrap:wrap;margin-top:10px">` +
     (S.filter ? `<button class="chip" id="clearFilter">
@@ -1213,11 +1219,6 @@ function renderQuality() {
   if (S.role !== 'rop') { document.getElementById('quality').innerHTML = ''; return; }
   document.getElementById('quality').innerHTML = `
     <h2 class="sec">Что нашлось при переносе из Excel</h2>
-    <div class="flag warn"><span class="fi">Свод</span><div>
-      <b>Ручной свод за июль недосчитал $273 прибыли.</b>
-      У Шахнозы в итог попали сделки на $75 и $88, а сделка на $143 в сумму не вошла;
-      ещё $30 и $100 потерялись у Азизы и Сарвиноз. Считает дашборд — расхождения исчезают,
-      а вместе с ними и споры о зарплате.</div></div>
     <div class="flag warn"><span class="fi">Строки</span><div>
       <b>${DATA.issues.length} замечания к исходным данным.</b>
       <ul>${DATA.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
@@ -1247,3 +1248,5 @@ function render() {
 }
 render();
 </script>
+</body>
+</html>

@@ -177,6 +177,7 @@ def main():
     deals, issues = [], []
     unmapped_dir, unmapped_op = Counter(), Counter()
     ad_spend = {}
+    manager_ad_deductions = {}
 
     for ws in wb.worksheets:
         sheet = norm(ws.title)
@@ -193,7 +194,7 @@ def main():
         for row in ws.iter_rows(min_row=1, max_row=40, min_col=17, max_col=24, values_only=True):
             for i, cell in enumerate(row):
                 n = norm(cell)
-                if "таргет" in n or n == "target":
+                if "таргет" in n or n in {"target", "marketing"}:
                     m = re.search(r"(\d[\d\s.,]*)", n)
                     if m:
                         ad_spend[period] = parse_number(m.group(1))
@@ -201,6 +202,29 @@ def main():
                         val = parse_number(row[i + 1])
                         if val:
                             ad_spend[period] = val
+
+        # В боковой таблице месячного отчёта указано, у кого именно
+        # удерживается доля рекламы. Это важнее общего правила деления:
+        # у менеджера с небольшой комиссией удержания может не быть.
+        period_deductions = {}
+        for row in ws.iter_rows(min_row=1, max_row=40, min_col=17, max_col=24):
+            for i, cell in enumerate(row):
+                label = norm(cell.value)
+                if "menejer" not in label and "менеджер" not in label:
+                    continue
+                for detail in ws.iter_rows(
+                    min_row=cell.row + 1,
+                    max_row=min(cell.row + 10, ws.max_row),
+                    min_col=cell.column,
+                    max_col=min(cell.column + 4, ws.max_column),
+                    values_only=True,
+                ):
+                    manager = MANAGERS.get(norm(detail[0]))
+                    deduction = parse_number(detail[4]) if len(detail) > 4 else None
+                    if manager and deduction is not None:
+                        period_deductions[manager] = round(deduction, 2)
+                break
+        manager_ad_deductions[period] = period_deductions
 
         for excel_row, r in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
             if r[L["no"]] is None:
@@ -225,26 +249,21 @@ def main():
             if bad_op:
                 unmapped_op[bad_op] += 1
 
-            # Прибыль. Считаем сами из брутто и нетто — это единственный
-            # способ получить цифру, которая не разъезжается с суммами.
-            # Если нетто не заполнено, прибыль неизвестна: подставлять сюда
-            # брутто нельзя, иначе сделка без себестоимости выглядит как
-            # сверхприбыльная и ломает весь рейтинг менеджеров.
+            # Прибыль — утверждённое значение из отчёта. Брутто−нетто может
+            # отличаться из-за ручных корректировок, поэтому используется
+            # только как запасной расчёт, если колонка прибыли пуста.
             profit_stated = parse_number(r[L["profit"]])
             gaps = []
-            if net is None:
-                gaps.append("не заполнено нетто")
+            if profit_stated is not None:
                 profit = profit_stated
-                if profit is None:
-                    gaps.append("прибыль не посчитана")
+            elif net is None:
+                gaps.append("не заполнено нетто")
+                gaps.append("прибыль не посчитана")
+                profit = None
             else:
                 profit = round(gross - net, 2)
-                if profit_stated is not None and abs(profit - profit_stated) > 1:
-                    gaps.append(f"в отчёте прибыль {profit_stated:.0f}, брутто−нетто = {profit:.0f}")
-                    issues.append(f"{ws.title}, строка {excel_row}: "
-                                  f"прибыль в отчёте {profit_stated:.0f}, "
-                                  f"а брутто−нетто = {profit:.0f}")
-            if gaps and net is None:
+                gaps.append("прибыль рассчитана как брутто−нетто")
+            if gaps:
                 issues.append(f"{ws.title}, строка {excel_row}: " + ", ".join(gaps))
 
             net_v = net if net is not None else 0.0
@@ -288,6 +307,7 @@ def main():
         "commission_rate": 0.5,       # менеджер получает 50% от прибыли по сделке
         "ad_spend_split": 8,          # расход на рекламу делится на 8 долей
         "ad_spend": ad_spend,
+        "manager_ad_deductions": manager_ad_deductions,
         "deals": deals,
         "issues": issues,
     }
