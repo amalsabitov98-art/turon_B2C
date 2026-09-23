@@ -486,18 +486,13 @@ function agg(list) {
   a.margin = a.gross ? a.profit / a.gross * 100 : null;
   return a;
 }
-// Доля расхода на рекламу с одного менеджера за месяц.
-const adShare = p => (DATA.ad_spend[p] || 0) / DATA.ad_spend_split;
-
 // Сколько рекламы вычитается у конкретного менеджера за выбранный период.
-// Считаем только те месяцы, в которых у него были продажи: иначе менеджер,
-// вышедший в июле, платит и за май с июнем.
+// Берём только фактическое удержание из расчётной таблицы Excel.
 function adFor(manager, period) {
   const months = period === 'all' ? PERIODS : [period];
   return months.reduce((s, p) => {
     const reported = DATA.manager_ad_deductions && DATA.manager_ad_deductions[p];
-    if (reported) return s + (reported[manager] || 0);
-    return s + (DATA.deals.some(d => d.manager === manager && d.period === p) ? adShare(p) : 0);
+    return s + (reported ? reported[manager] || 0 : 0);
   }, 0);
 }
 function adTotalFor(period) {
@@ -689,7 +684,7 @@ function renderAttention() {
           const on = (S.period === p || S.period === 'all');
           return `<div class="att-i"${on ? '' : ' style="opacity:.45"'}>
             <div class="ic w">◎</div>
-            <div class="tx"><b>${PERIOD_NAMES[p]}</b><s>делится на ${DATA.ad_spend_split} долей → ${esc(money((DATA.ad_spend[p] || 0) / DATA.ad_spend_split))} с менеджера</s></div>
+            <div class="tx"><b>${PERIOD_NAMES[p]}</b></div>
             <div class="amt">${esc(money(DATA.ad_spend[p] || 0))}</div></div>`;
         }).join('')) : ''}
     </div>`;

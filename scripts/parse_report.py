@@ -305,7 +305,6 @@ def main():
         "generated_at": dt.datetime.now().isoformat(timespec="seconds"),
         "source": args.xlsx.split("/")[-1],
         "commission_rate": 0.5,       # менеджер получает 50% от прибыли по сделке
-        "ad_spend_split": 8,          # расход на рекламу делится на 8 долей
         "ad_spend": ad_spend,
         "manager_ad_deductions": manager_ad_deductions,
         "deals": deals,

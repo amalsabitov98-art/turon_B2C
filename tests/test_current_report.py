@@ -87,7 +87,7 @@ class CurrentReportTest(unittest.TestCase):
     def test_dashboard_aggregation_divides_sales_by_tourists(self):
         template = (ROOT / "prototype" / "dashboard.tpl.html").read_text(encoding="utf-8")
         start = template.index("function agg(list)")
-        end = template.index("\n// Доля расхода", start)
+        end = template.index("\n// Сколько рекламы", start)
         function_source = template[start:end]
         script = function_source + "\nconsole.log(JSON.stringify(agg([{gross:300,profit:30,pax:3,client_debt:0,operator_debt:0,gaps:[]}])));"
         completed = subprocess.run(
@@ -95,6 +95,25 @@ class CurrentReportTest(unittest.TestCase):
         )
         result = json.loads(completed.stdout)
         self.assertEqual(result["avg"], 100)
+
+    def test_dashboard_never_invents_ad_deduction_from_total_spend(self):
+        template = (ROOT / "prototype" / "dashboard.tpl.html").read_text(encoding="utf-8")
+        start = template.index("function adFor")
+        end = template.index("function adTotalFor", start)
+        function_source = template[start:end]
+        script = """
+const PERIODS = ['2026-08'];
+const DATA = {
+  ad_spend: {'2026-08': 800},
+  ad_spend_split: 8,
+  manager_ad_deductions: {},
+  deals: [{period: '2026-08', manager: 'Азиза'}]
+};
+""" + function_source + "\nconsole.log(adFor('Азиза', '2026-08'));"
+        completed = subprocess.run(
+            ["node", "-e", script], capture_output=True, text=True, check=True, encoding="utf-8"
+        )
+        self.assertEqual(float(completed.stdout), 0)
 
 
 if __name__ == "__main__":
