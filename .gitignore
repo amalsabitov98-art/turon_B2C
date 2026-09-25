@@ -11,3 +11,6 @@ prototype/dashboard.html
 
 __pycache__/
 *.pyc
+
+# Isolated implementation worktrees
+.worktrees/
