@@ -306,18 +306,33 @@ class MarketingAggregationTest(unittest.TestCase):
         self.assertEqual(self.model(f"marketingPeriods({data}, 'month')"), ["2026-07"])
         self.assertEqual(self.model(f"marketingPeriods({data}, 'week')"), ["jul", "bridge"])
 
-    def test_hide_zero_filters_only_campaign_list_not_metric_inputs(self):
+    def test_zero_spend_rows_remain_for_audit_but_not_aggregate_metrics(self):
         exports = [{"id": "week", "start": "2026-07-20", "campaigns": [
-            {"spend": 10, "impressions": 100, "result_category": "lead", "results": 2},
-            {"spend": 0, "impressions": 100, "result_category": "lead", "results": 3},
+            {"spend": 10, "impressions": 100, "link_clicks": 10,
+             "result_category": "lead", "results": 2},
+            {"spend": 0, "impressions": 100, "link_clicks": 40,
+             "result_category": "lead", "results": 3},
+            {"spend": None, "impressions": 500, "link_clicks": 100,
+             "result_category": "profile_visit", "results": 7},
         ]}]
         scoped = self.model("(() => { const s = marketingScope(" + json.dumps(exports) +
                             ", {mode:'week', period:'week', hideZero:true}); "
                             "return {metrics: aggregateMarketing(s.campaigns, s.exports), "
-                            "shown: s.filteredCampaigns}; })()")
-        self.assertEqual(scoped["metrics"]["impressions"], 200)
-        self.assertEqual(scoped["metrics"]["leads"], 5)
+                            "audit: s.campaigns, shown: s.filteredCampaigns}; })()")
+        self.assertEqual(len(scoped["audit"]), 3)
         self.assertEqual(len(scoped["shown"]), 1)
+        metrics = scoped["metrics"]
+        self.assertEqual(metrics["spend"], 10)
+        self.assertEqual(metrics["impressions"], 100)
+        self.assertEqual(metrics["linkClicks"], 10)
+        self.assertEqual(metrics["leads"], 2)
+        self.assertEqual(metrics["leadSpend"], 10)
+        self.assertEqual(metrics["cpm"], 100)
+        self.assertEqual(metrics["cpc"], 1)
+        self.assertEqual(metrics["linkCtr"], 10)
+        self.assertEqual(metrics["cpl"], 5)
+        self.assertEqual(metrics["resultCategories"],
+                         {"lead": {"results": 2, "spend": 10, "campaigns": 1}})
 
     def test_month_coverage_unions_days_and_marks_partial_july_august(self):
         exports = [

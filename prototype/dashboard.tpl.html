@@ -530,6 +530,7 @@ function aggregateMarketing(campaigns, exports = []) {
     resultCategories: {}
   };
   for (const row of campaigns) {
+    if (!(row.spend > 0)) continue;
     const spend = row.spend || 0;
     a.spend += spend;
     a.impressions += row.impressions || 0;
