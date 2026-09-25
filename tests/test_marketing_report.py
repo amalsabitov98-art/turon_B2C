@@ -381,6 +381,104 @@ class MarketingAggregationTest(unittest.TestCase):
         ).values()))
 
 
+class MarketingTemplateTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.template = (Path(__file__).parents[1] / "prototype" / "dashboard.tpl.html").read_text(encoding="utf-8")
+
+    def test_section_and_marketing_mounts_exist(self):
+        for element_id in ("sectionSeg", "salesView", "marketingView", "marketingModeSeg",
+                           "marketingPeriodSeg", "marketingKpis", "marketingResults",
+                           "marketingCampaigns"):
+            with self.subTest(element_id=element_id):
+                self.assertTrue(f'id="{element_id}"' in self.template,
+                                f'missing #{element_id}')
+        render = self.template.split("function render() {", 1)[1].split("\n}", 1)[0]
+        self.assertIn("renderSectionNavigation()", render)
+        self.assertIn("renderMarketing()", render)
+
+    def test_hidden_controls_stay_hidden_with_author_display_styles(self):
+        self.assertIn('[hidden] { display:none!important; }', self.template)
+
+    def marketing_ui(self, payload, state=None):
+        model_start = self.template.index("/* ---------- marketing model ---------- */")
+        model_end = self.template.index("/* ---------- подсказка ---------- */", model_start)
+        ui_start = self.template.find("/* ---------- marketing interface ---------- */")
+        ui_end = self.template.find("/* ---------- контекст ---------- */", ui_start)
+        ui = self.template[ui_start:ui_end] if ui_start >= 0 and ui_end > ui_start else ""
+        script = f"""
+const DATA = {json.dumps({'marketing': payload}, ensure_ascii=False)};
+const S = {json.dumps(state or {'role': 'rop', 'section': 'marketing', 'currency': 'USD', 'marketing': {'mode': 'week', 'period': 'week', 'hideZero': True}}, ensure_ascii=False)};
+const elements = Object.fromEntries(['sectionControl','sectionSeg','salesView','marketingView',
+  'perControl','currencyControl','rateBox','maskControl','marketingModeSeg',
+  'marketingPeriodSeg','marketingKpis','marketingResults','marketingCampaigns',
+  'marketingCoverage','marketingIssues','marketingHideZero'].map(id => [id,
+    {{innerHTML:'', hidden:false, style:{{}}, checked:false, onclick:null, onchange:null}}]));
+const document = {{getElementById:id => elements[id]}};
+const esc = x => String(x == null ? '' : x).replace(/[&<>\"]/g, c =>
+  ({{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}}[c]));
+const money = v => v == null ? '—' : '$' + Number(v).toFixed(2);
+const pct = v => v == null ? '—' : Number(v).toFixed(1) + '%';
+const nf = new Intl.NumberFormat('ru-RU');
+function seg(el, items, cur, cb) {{
+  el.items = items; el.current = cur; el.choose = cb;
+  el.innerHTML = items.map(i => `<button aria-pressed="${{i.v === cur}}">${{esc(i.t)}}</button>`).join('');
+}}
+{self.template[model_start:model_end]}
+{ui}
+renderSectionNavigation();
+renderMarketing();
+process.stdout.write(JSON.stringify({{state:S, elements}}));
+"""
+        result = subprocess.run(["node", "-e", script], capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def test_manager_cannot_retain_marketing_view(self):
+        result = self.marketing_ui({'exports': [], 'issues': []},
+                                   {'role': 'Manager', 'section': 'marketing', 'currency': 'USD',
+                                    'marketing': {'mode': 'week', 'period': None, 'hideZero': True}})
+        self.assertEqual(result['state']['section'], 'sales')
+        self.assertTrue(result['elements']['sectionControl']['hidden'])
+        self.assertTrue(result['elements']['marketingView']['hidden'])
+
+    def test_marketing_keeps_currency_control_available(self):
+        result = self.marketing_ui({'exports': [], 'issues': []})['elements']
+        self.assertFalse(result['currencyControl']['hidden'])
+        self.assertFalse(result['rateBox']['hidden'])
+
+    def test_empty_marketing_and_issues_are_visible_separately(self):
+        result = self.marketing_ui({'exports': [], 'issues': ['Bad Meta row']})['elements']
+        self.assertIn('Нет рекламных выгрузок', result['marketingResults']['innerHTML'])
+        self.assertIn('Bad Meta row', result['marketingIssues']['innerHTML'])
+
+    def test_partial_month_and_separate_results_and_zero_spend_filter(self):
+        rows = [
+            {'name': 'Lead', 'status': 'active', 'spend': 10, 'impressions': 1000,
+             'link_clicks': 20, 'results': 2, 'result_category': 'lead',
+             'result_type_raw': 'actions:leadgen.other'},
+            {'name': 'Call', 'status': 'paused', 'spend': 5, 'impressions': 500,
+             'link_clicks': 10, 'results': 3, 'result_category': 'call',
+             'result_type_raw': 'actions:click_to_call_native_call_placed'},
+            {'name': 'Zero', 'status': 'paused', 'spend': 0, 'impressions': 300,
+             'link_clicks': 1, 'results': 8, 'result_category': 'lead',
+             'result_type_raw': 'actions:leadgen.other'},
+        ]
+        export = {'id': 'week', 'start': '2026-07-20', 'end': '2026-07-26',
+                  'month': '2026-07', 'month_eligible': True, 'campaigns': rows}
+        state = {'role': 'rop', 'section': 'marketing', 'currency': 'USD',
+                 'marketing': {'mode': 'month', 'period': '2026-07', 'hideZero': True}}
+        result = self.marketing_ui({'exports': [export], 'issues': []}, state)['elements']
+        self.assertIn('Неполный месяц', result['marketingCoverage']['innerHTML'])
+        self.assertIn('Лиды', result['marketingResults']['innerHTML'])
+        self.assertIn('Звонки', result['marketingResults']['innerHTML'])
+        self.assertNotIn('Посещения профиля', result['marketingResults']['innerHTML'])
+        self.assertIn('$15,00', result['marketingKpis']['innerHTML'])
+        self.assertIn('Lead', result['marketingCampaigns']['innerHTML'])
+        self.assertIn('Call', result['marketingCampaigns']['innerHTML'])
+        self.assertNotIn('Zero', result['marketingCampaigns']['innerHTML'])
+
+
 class DashboardBuildTest(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()

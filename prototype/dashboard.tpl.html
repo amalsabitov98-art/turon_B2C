@@ -25,6 +25,7 @@
     --mono:"JetBrains Mono",ui-monospace,monospace;
   }
   * { box-sizing:border-box; }
+  [hidden] { display:none!important; }
   body { margin:0; background:var(--bg); color:var(--text); font-family:var(--body);
          font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased; }
   .wrap { max-width:1340px; margin:0 auto; padding:0 24px 120px; }
@@ -116,6 +117,13 @@
               border-color:rgba(190,242,100,.3); }
   .kpi.lead .k-v { color:var(--accent); }
   .up { color:var(--pos); } .down { color:var(--neg); }
+  .marketing-result-lead { background:linear-gradient(152deg,rgba(190,242,100,.15),rgba(190,242,100,.03) 64%);
+                           border-color:rgba(190,242,100,.3); }
+  .marketing-result-lead .k-v { color:var(--accent); }
+  .marketing-controls { display:flex; gap:12px 20px; align-items:center; flex-wrap:wrap; margin:16px 0; }
+  .marketing-controls .ctl { flex-wrap:wrap; gap:6px; }
+  .marketing-table { min-width:1040px; }
+  .marketing-table td.name { white-space:normal; min-width:180px; }
 
   /* ---------- таблицы ---------- */
   .tw { overflow-x:auto; border:1px solid var(--border); border-radius:16px;
@@ -302,6 +310,7 @@
     .wrap{ padding:0 14px 80px; } .top{ padding:12px 14px; }
     .ctl{ width:100%; } .top-in{ gap:10px; }
     .kpi .k-v{ font-size:25px; }
+    .marketing-controls .ctl { width:100%; }
   }
   @media (prefers-reduced-motion:reduce){ *{ transition:none!important; } }
 </style>
@@ -313,14 +322,16 @@
     <div class="brand"><i></i>Пульт продаж<small>Turon</small></div>
     <div class="spacer"></div>
     <div class="ctl"><span class="ctl-lbl">Вход</span><div class="seg" id="roleSeg"></div></div>
-    <div class="ctl"><span class="ctl-lbl">Период</span><div class="seg" id="perSeg"></div></div>
-    <div class="ctl"><span class="ctl-lbl">Валюта</span><div class="seg" id="curSeg"></div></div>
+    <div class="ctl" id="sectionControl"><span class="ctl-lbl">Раздел</span><div class="seg" id="sectionSeg" aria-label="Раздел отчёта"></div></div>
+    <div class="ctl" id="perControl"><span class="ctl-lbl">Период</span><div class="seg" id="perSeg"></div></div>
+    <div class="ctl" id="currencyControl"><span class="ctl-lbl">Валюта</span><div class="seg" id="curSeg"></div></div>
     <div class="rate-box" id="rateBox"><span>1 $ =</span><input id="rate" type="number" min="1" step="10" value="12800"><span>сум</span></div>
-    <label class="toggle"><input type="checkbox" id="mask">Скрыть имена клиентов</label>
+    <label class="toggle" id="maskControl"><input type="checkbox" id="mask">Скрыть имена клиентов</label>
   </div>
 </div>
 
 <div class="wrap">
+  <div id="salesView">
   <div id="ctx"></div>
 
   <div class="grid g4" id="kpis"></div>
@@ -358,6 +369,22 @@
     <span>Источник: ежемесячный отчёт в Excel · май–август 2026 · 139 сделок</span>
     <span>Прототип на реальных данных</span>
   </div>
+  </div>
+
+  <section id="marketingView" hidden aria-label="Маркетинг">
+    <h2 class="sec">Маркетинг</h2>
+    <p class="sec-note">Результаты рекламного кабинета Meta по загруженным выгрузкам. Данные о продажах и удержаниях показаны отдельно.</p>
+    <div class="marketing-controls">
+      <div class="ctl"><span class="ctl-lbl">Группировка</span><div class="seg" id="marketingModeSeg" aria-label="Группировка рекламы"></div></div>
+      <div class="ctl"><span class="ctl-lbl">Период</span><div class="seg" id="marketingPeriodSeg" aria-label="Период рекламы"></div></div>
+      <label class="toggle"><input type="checkbox" id="marketingHideZero" checked>Скрыть без расходов</label>
+    </div>
+    <div id="marketingCoverage" role="status"></div>
+    <div class="grid g4" id="marketingKpis"></div>
+    <div id="marketingResults"></div>
+    <div id="marketingCampaigns"></div>
+    <div id="marketingIssues"></div>
+  </section>
 </div>
 
 <div id="tip"></div>
@@ -367,6 +394,8 @@ const DATA = /*__DATA__*/null;
 
 const S = {
   role: 'rop',
+  section: 'sales',
+  marketing: { mode: 'week', period: null, hideZero: true, sort: { key: 'spend', dir: -1 } },
   period: '2026-08',
   currency: 'USD',
   rate: 12800,
@@ -619,7 +648,7 @@ function seg(el, items, cur, cb) {
 function renderControls() {
   seg(document.getElementById('roleSeg'),
     [{ v: 'rop', t: 'РОП' }].concat(loginNames().sort().map(m => ({ v: m, t: m }))),
-    S.role, v => { S.role = v; S.dealsAll = false; S.filter = null; S.onlyLow = false; render(); });
+    S.role, v => { S.role = v; if (v !== 'rop') S.section = 'sales'; S.dealsAll = false; S.filter = null; S.onlyLow = false; render(); });
 
   seg(document.getElementById('perSeg'),
     PERIODS.map(p => ({ v: p, t: PERIOD_NAMES[p] || p })).concat([{ v: 'all', t: 'Всё' }]),
@@ -635,6 +664,131 @@ document.getElementById('rate').oninput = e => {
   S.rate = Math.max(1, +e.target.value || 1); render();
 };
 document.getElementById('mask').onchange = e => { S.mask = e.target.checked; render(); };
+
+/* ---------- marketing interface ---------- */
+const MARKETING_CATEGORIES = {
+  lead: 'Лиды', call: 'Звонки', link_click: 'Клики по ссылке',
+  landing_page_view: 'Просмотры целевой страницы',
+  profile_visit: 'Посещения профиля', other: 'Другие результаты'
+};
+
+function marketingMoney(value) {
+  if (value == null) return '—';
+  if (S.currency === 'UZS') return nf.format(Math.round(value * S.rate)) + ' сум';
+  return '$' + new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2,
+    maximumFractionDigits: 2 }).format(value);
+}
+
+function marketingDelta(value) {
+  if (value == null) return '';
+  return `<div class="k-s ${value >= 0 ? 'up' : 'down'}">${value > 0 ? '+' : ''}${esc(pct(value))} к предыдущему периоду</div>`;
+}
+
+function renderSectionNavigation() {
+  if (S.role !== 'rop') S.section = 'sales';
+  const rop = S.role === 'rop';
+  document.getElementById('sectionControl').hidden = !rop;
+  if (rop) seg(document.getElementById('sectionSeg'),
+    [{ v: 'sales', t: 'Продажи' }, { v: 'marketing', t: 'Маркетинг' }],
+    S.section, v => { S.section = v; render(); });
+  document.getElementById('salesView').hidden = S.section !== 'sales';
+  document.getElementById('marketingView').hidden = !rop || S.section !== 'marketing';
+  for (const id of ['perControl', 'maskControl'])
+    document.getElementById(id).hidden = S.section !== 'sales';
+  document.getElementById('currencyControl').hidden = false;
+  document.getElementById('rateBox').hidden = false;
+}
+
+function renderMarketing() {
+  if (S.role !== 'rop' || S.section !== 'marketing') return;
+  const data = DATA.marketing || { exports: [], issues: [] };
+  const exports = data.exports || [];
+  const state = S.marketing;
+  const periods = marketingPeriods(exports, state.mode);
+  if (!periods.includes(state.period)) state.period = periods[periods.length - 1] || null;
+  seg(document.getElementById('marketingModeSeg'),
+    [{ v: 'week', t: 'Неделя' }, { v: 'month', t: 'Месяц' }], state.mode,
+    v => { state.mode = v; state.period = null; renderMarketing(); });
+  seg(document.getElementById('marketingPeriodSeg'), periods.map(period => {
+    if (state.mode === 'month') return { v: period, t: period };
+    const item = exports.find(x => x.id === period);
+    return { v: period, t: item ? `${dmy(item.start)}–${dmy(item.end)}` : period };
+  }), state.period, v => { state.period = v; renderMarketing(); });
+  const hideZero = document.getElementById('marketingHideZero');
+  hideZero.checked = state.hideZero;
+  hideZero.onchange = e => { state.hideZero = e.target.checked; renderMarketing(); };
+
+  const coverage = document.getElementById('marketingCoverage');
+  coverage.innerHTML = state.mode === 'month' && state.period
+    ? (() => { const c = monthCoverage(exports, state.period);
+        return c.complete ? '' : `<div class="flag warn"><span class="fi">Неполный месяц</span><div>Загружены данные за ${c.coveredDays} из ${c.totalDays} дней. Показатели относятся только к доступным неделям.</div></div>`;
+      })() : '';
+  const issues = data.issues || [];
+  document.getElementById('marketingIssues').innerHTML = issues.length
+    ? `<h2 class="sec">Замечания к рекламным выгрузкам</h2><div class="flag warn"><span class="fi">Данные</span><ul>${issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>` : '';
+
+  const kpis = document.getElementById('marketingKpis');
+  const results = document.getElementById('marketingResults');
+  const campaigns = document.getElementById('marketingCampaigns');
+  if (!exports.length || !periods.length) {
+    kpis.innerHTML = '';
+    campaigns.innerHTML = '';
+    results.innerHTML = `<div class="flag info"><span class="fi">Нет данных</span><div>${!exports.length
+      ? 'Нет рекламных выгрузок. Добавьте файл отчёта Meta, чтобы увидеть показатели.'
+      : 'Нет рекламных выгрузок для выбранной группировки.'}</div></div>`;
+    return;
+  }
+  const scoped = marketingScope(exports, state);
+  const total = aggregateMarketing(scoped.campaigns, scoped.exports);
+  const comparison = marketingComparison(exports, state);
+  const card = (label, value, key) => `<div class="card kpi"><div class="k-l">${label}</div>
+    <div class="k-v">${esc(value)}</div>${marketingDelta(comparison[key])}</div>`;
+  kpis.innerHTML = [
+    card('Расходы', marketingMoney(total.spend), 'spend'),
+    card('Показы', nf.format(total.impressions), 'impressions'),
+    card('CPM', marketingMoney(total.cpm), 'cpm'),
+    card('Клики по ссылке', nf.format(total.linkClicks), 'linkClicks'),
+    card('CPC', marketingMoney(total.cpc), 'cpc'),
+    card('CTR по ссылке', pct(total.linkCtr), 'linkCtr')
+  ].join('');
+
+  const categories = total.resultCategories;
+  const lead = categories.lead;
+  const leadBlock = lead ? `<div class="card kpi marketing-result-lead"><div class="k-l">Лиды</div>
+    <div class="k-v">${nf.format(total.leads)}</div>
+    <div class="k-s">Расходы кампаний с лидами: ${esc(marketingMoney(total.leadSpend))} · CPL: ${esc(marketingMoney(total.cpl))}</div>
+    ${marketingDelta(comparison.leads)}</div>` : '';
+  const otherBlocks = ['call', 'link_click', 'landing_page_view', 'profile_visit', 'other']
+    .filter(key => categories[key] && (categories[key].campaigns || categories[key].results))
+    .map(key => `<div class="card kpi"><div class="k-l">${MARKETING_CATEGORIES[key]}</div>
+      <div class="k-v">${nf.format(categories[key].results)}</div>
+      <div class="k-s">${categories[key].campaigns} кампаний · ${esc(marketingMoney(categories[key].spend))}</div></div>`).join('');
+  results.innerHTML = `<h2 class="sec">Результаты по типам</h2><div class="grid g4">${leadBlock}${otherBlocks}</div>`;
+
+  const sort = state.sort || { key: 'spend', dir: -1 };
+  const rows = scoped.filteredCampaigns.slice().sort((a, b) => {
+    const left = a[sort.key], right = b[sort.key];
+    return sort.key === 'name' ? sort.dir * String(left || '').localeCompare(String(right || ''))
+      : sort.dir * ((left || 0) - (right || 0));
+  });
+  campaigns.innerHTML = `<h2 class="sec">Кампании</h2><p class="sec-note">${rows.length} из ${scoped.campaigns.length} кампаний · сортировка по расходам</p>
+    <div class="tw"><table class="marketing-table"><thead><tr>
+      <th>Кампания</th><th>Тип результата</th><th>Статус</th><th class="num">Расходы</th>
+      <th class="num">Результат</th><th class="num">Цена результата</th><th class="num">Показы</th>
+      <th class="num">Клики по ссылке</th><th class="num">CTR по ссылке</th><th class="num">CPM</th>
+    </tr></thead><tbody>${rows.map(row => {
+      const cost = row.results > 0 && row.spend != null ? row.spend / row.results : null;
+      const ctr = row.impressions > 0 ? (row.link_clicks || 0) / row.impressions * 100 : null;
+      const cpm = row.impressions > 0 && row.spend != null ? row.spend / row.impressions * 1000 : null;
+      return `<tr><td class="name">${esc(row.name || '—')}</td>
+        <td>${esc(MARKETING_CATEGORIES[row.result_category] || MARKETING_CATEGORIES.other)}<br><span class="alias">${esc(row.result_type_raw || '—')}</span></td>
+        <td>${esc(row.status || '—')}</td><td class="num">${esc(marketingMoney(row.spend))}</td>
+        <td class="num">${row.results == null ? '—' : nf.format(row.results)}</td>
+        <td class="num">${esc(marketingMoney(cost))}</td><td class="num">${row.impressions == null ? '—' : nf.format(row.impressions)}</td>
+        <td class="num">${row.link_clicks == null ? '—' : nf.format(row.link_clicks)}</td>
+        <td class="num">${esc(pct(ctr))}</td><td class="num">${esc(marketingMoney(cpm))}</td></tr>`;
+    }).join('')}</tbody></table></div>`;
+}
 
 /* ---------- контекст ---------- */
 function renderCtx() {
@@ -761,7 +915,7 @@ function renderAttention() {
           dmy(d.depart_at))).join(''))}
     </div>
     <div class="grid g2" style="margin-top:14px">
-      ${S.role === 'rop' ? block('Расход на таргетированную рекламу',
+      ${S.role === 'rop' ? block('Рекламные удержания по отчёту продаж',
         0, money(PERIODS.reduce((s, p) => s + (DATA.ad_spend[p] || 0), 0)) + ` за ${PERIODS.length} мес.`,
         PERIODS.map(p => {
           const on = (S.period === p || S.period === 'all');
@@ -1314,6 +1468,8 @@ function render() {
   if (!S.team) S.team = loadTeam();
   if (S.role !== 'rop' && !isActive(S.role)) S.role = 'rop';
   renderControls();
+  renderSectionNavigation();
+  renderMarketing();
   renderCtx();
   renderKpis();
   renderAttention();
