@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from collections import defaultdict
@@ -17,7 +18,7 @@ class CurrentReportTest(unittest.TestCase):
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.data_path = Path(cls.temp_dir.name) / "deals.json"
         subprocess.run(
-            ["python", "scripts/parse_report.py", str(WORKBOOK), "-o", str(cls.data_path)],
+            [sys.executable, "scripts/parse_report.py", str(WORKBOOK), "-o", str(cls.data_path)],
             cwd=ROOT,
             check=True,
             env={**os.environ, "PYTHONUTF8": "1"},

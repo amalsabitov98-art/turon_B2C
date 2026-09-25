@@ -240,5 +240,65 @@ class RealMetaWorkbookTest(unittest.TestCase):
         self.assertNotIn("results", totals)
 
 
+class DashboardBuildTest(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        self.directory = Path(self.temp_dir.name)
+        self.sales = self.directory / "deals.json"
+        self.marketing = self.directory / "marketing.json"
+        self.template = self.directory / "dashboard.tpl.html"
+        self.output = self.directory / "index.html"
+        self.template.write_text("const DATA = /*__DATA__*/null;\n", encoding="utf-8")
+        self.sales_payload = {
+            "deals": [{"gross": 300, "profit": 30, "pax": 3}],
+            "ad_spend": {"2026-08": 1277},
+        }
+        self.sales.write_text(json.dumps(self.sales_payload), encoding="utf-8")
+
+    def build(self):
+        return subprocess.run(
+            [sys.executable, str(Path(__file__).parents[1] / "scripts" / "build_dashboard.py"),
+             "--sales", str(self.sales), "--marketing", str(self.marketing),
+             "--template", str(self.template), "--out", str(self.output)],
+            cwd=self.directory, capture_output=True, text=True,
+        )
+
+    def embedded_payload(self):
+        html = self.output.read_text(encoding="utf-8")
+        return json.loads(html.split("const DATA = ", 1)[1].split(";", 1)[0])
+
+    def test_build_embeds_exact_marketing_object_without_changing_sales(self):
+        marketing_payload = {
+            "generated_at": "2026-09-25T08:30:00+00:00",
+            "sources": ["july.xlsx"],
+            "exports": [{
+                "id": "2026-07-20_2026-07-26", "signature": "abc123",
+                "start": "2026-07-20", "end": "2026-07-26", "month": "2026-07",
+                "month_eligible": True, "source": "july.xlsx",
+                "totals": {"spend": 162.05, "leads": 120},
+                "campaigns": [{"name": "Lead campaign", "spend": 103.67}],
+            }],
+            "issues": ["Weekly extract only"],
+        }
+        self.marketing.write_text(json.dumps(marketing_payload), encoding="utf-8")
+
+        result = self.build()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            self.embedded_payload(), {**self.sales_payload, "marketing": marketing_payload}
+        )
+
+    def test_build_without_marketing_file_embeds_empty_marketing_data(self):
+        result = self.build()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            self.embedded_payload(),
+            {**self.sales_payload, "marketing": {"exports": [], "issues": []}},
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
