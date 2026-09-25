@@ -22,7 +22,7 @@ def main():
     template = Path(args.template).read_text(encoding="utf-8")
     output = template.replace(
         "/*__DATA__*/null",
-        json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":")).replace("<", r"\u003c"),
     )
     Path(args.out).write_text(output, encoding="utf-8")
     print("ok", len(output), "байт")

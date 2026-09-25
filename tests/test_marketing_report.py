@@ -299,6 +299,20 @@ class DashboardBuildTest(unittest.TestCase):
             {**self.sales_payload, "marketing": {"exports": [], "issues": []}},
         )
 
+    def test_build_escapes_closing_script_in_campaign_name(self):
+        self.template = Path(__file__).parents[1] / "prototype" / "dashboard.tpl.html"
+        campaign_name = "City </script><script>alert(1)</script> sale"
+        marketing_payload = {"exports": [{"campaigns": [{"name": campaign_name}]}], "issues": []}
+        self.marketing.write_text(json.dumps(marketing_payload), encoding="utf-8")
+
+        result = self.build()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        html = self.output.read_text(encoding="utf-8")
+        serialized = html.split("const DATA = ", 1)[1].split(";", 1)[0]
+        self.assertNotIn("</script>", serialized.lower())
+        self.assertEqual(json.loads(serialized)["marketing"], marketing_payload)
+
 
 if __name__ == "__main__":
     unittest.main()
