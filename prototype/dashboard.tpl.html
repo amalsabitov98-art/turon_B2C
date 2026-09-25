@@ -510,6 +510,88 @@ function byKey(list, key) {
   return [...m.values()].sort((a, b) => b.profit - a.profit);
 }
 
+/* ---------- marketing model ---------- */
+// These functions use only the supplied Meta exports and selection state.
+function marketingScope(exports, state) {
+  const selected = exports.filter(x => state.mode === 'month'
+    ? x.month_eligible && x.month === state.period
+    : x.id === state.period);
+  const campaigns = selected.flatMap(x => x.campaigns || []);
+  const filteredCampaigns = campaigns
+    .filter(x => !state.hideZero || (x.spend || 0) !== 0);
+  return { exports: selected, campaigns, filteredCampaigns };
+}
+
+function aggregateMarketing(campaigns, exports = []) {
+  const a = {
+    spend: 0, impressions: 0, linkClicks: 0, reach: null,
+    cpm: null, cpc: null, linkCtr: null,
+    leads: 0, leadSpend: 0, cpl: null,
+    resultCategories: {}
+  };
+  for (const row of campaigns) {
+    const spend = row.spend || 0;
+    a.spend += spend;
+    a.impressions += row.impressions || 0;
+    a.linkClicks += row.link_clicks || 0;
+    const category = row.result_category || 'other';
+    const group = a.resultCategories[category] || { results: 0, spend: 0, campaigns: 0 };
+    group.results += row.results || 0;
+    group.spend += spend;
+    group.campaigns++;
+    a.resultCategories[category] = group;
+  }
+  const lead = a.resultCategories.lead;
+  if (lead) { a.leads = lead.results; a.leadSpend = lead.spend; }
+  a.cpm = a.impressions ? a.spend / a.impressions * 1000 : null;
+  a.cpc = a.linkClicks ? a.spend / a.linkClicks : null;
+  a.linkCtr = a.impressions ? a.linkClicks / a.impressions * 100 : null;
+  a.cpl = a.leads ? a.leadSpend / a.leads : null;
+  // Reach is unique per export; audiences from separate weeks can overlap.
+  if (exports.length === 1 && exports[0].totals && exports[0].totals.reach != null)
+    a.reach = exports[0].totals.reach;
+  return a;
+}
+
+function marketingPeriods(exports, mode) {
+  if (mode === 'month')
+    return [...new Set(exports.filter(x => x.month_eligible && x.month)
+      .map(x => x.month))].sort();
+  return exports.slice().sort((a, b) => a.start.localeCompare(b.start))
+    .map(x => x.id);
+}
+
+function monthCoverage(exports, month) {
+  const [year, number] = month.split('-').map(Number);
+  const totalDays = new Date(Date.UTC(year, number, 0)).getUTCDate();
+  const covered = new Set();
+  for (const item of exports) {
+    if (!item.month_eligible || item.month !== month) continue;
+    for (let day = Number(item.start.slice(8)); day <= Number(item.end.slice(8)); day++)
+      covered.add(day);
+  }
+  return { complete: covered.size === totalDays, coveredDays: covered.size, totalDays };
+}
+
+function marketingComparison(exports, state) {
+  const keys = ['spend', 'impressions', 'cpm', 'linkClicks', 'cpc',
+    'linkCtr', 'leads', 'leadSpend', 'cpl'];
+  const deltas = Object.fromEntries(keys.map(key => [key, null]));
+  const periods = marketingPeriods(exports, state.mode);
+  const index = periods.indexOf(state.period);
+  if (index < 1) return deltas;
+  const currentScope = marketingScope(exports, { ...state, hideZero: false });
+  const previousScope = marketingScope(exports,
+    { ...state, period: periods[index - 1], hideZero: false });
+  const current = aggregateMarketing(currentScope.campaigns, currentScope.exports);
+  const previous = aggregateMarketing(previousScope.campaigns, previousScope.exports);
+  for (const key of keys) {
+    if (current[key] != null && previous[key] != null && previous[key] !== 0)
+      deltas[key] = (current[key] - previous[key]) / previous[key] * 100;
+  }
+  return deltas;
+}
+
 /* ---------- подсказка ---------- */
 const tip = document.getElementById('tip');
 function showTip(e, html) {

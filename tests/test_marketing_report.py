@@ -240,6 +240,132 @@ class RealMetaWorkbookTest(unittest.TestCase):
         self.assertNotIn("results", totals)
 
 
+class MarketingAggregationTest(unittest.TestCase):
+    def model(self, expression):
+        template = (Path(__file__).parents[1] / "prototype" / "dashboard.tpl.html").read_text(encoding="utf-8")
+        start = template.find("/* ---------- marketing model ---------- */")
+        end = template.find("/* ---------- подсказка ---------- */", start)
+        block = template[start:end] if start >= 0 and end > start else ""
+        script = block + "\nprocess.stdout.write(JSON.stringify(" + expression + "));"
+        result = subprocess.run(["node", "-e", script], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def test_aggregation_sums_weighted_metrics_and_keeps_result_categories_separate(self):
+        rows = [
+            {"spend": 10, "impressions": 1000, "link_clicks": 100,
+             "results": 20, "result_category": "lead"},
+            {"spend": 5, "impressions": 500, "link_clicks": 50,
+             "results": 300, "result_category": "profile_visit"},
+        ]
+        result = self.model(f"aggregateMarketing({json.dumps(rows)})")
+        for key, expected in {
+            "spend": 15, "impressions": 1500, "cpm": 10,
+            "linkClicks": 150, "cpc": 0.1, "linkCtr": 10,
+            "leads": 20, "leadSpend": 10, "cpl": 0.5,
+        }.items():
+            self.assertAlmostEqual(result[key], expected, msg=key)
+        self.assertEqual(result["resultCategories"]["profile_visit"],
+                         {"results": 300, "spend": 5, "campaigns": 1})
+        self.assertNotIn("totalResults", result)
+        self.assertNotIn("results", result)
+
+    def test_reach_requires_a_single_export_level_total(self):
+        rows = [{"spend": 3, "reach": 100, "result_category": "lead"},
+                {"spend": 4, "reach": 80, "result_category": "call"}]
+        source = json.dumps(rows)
+        self.assertIsNone(self.model(f"aggregateMarketing({source})")["reach"])
+        self.assertEqual(self.model(
+            f"aggregateMarketing({source}, [{{totals: {{reach: 145}}}}])"
+        )["reach"], 145)
+        self.assertIsNone(self.model(
+            f"aggregateMarketing({source}, [{{totals: {{reach: 145}}}}, {{totals: {{reach: 60}}}}])"
+        )["reach"])
+
+    def test_zero_denominators_produce_null_rates(self):
+        result = self.model("aggregateMarketing([{spend: 10, impressions: 0, "
+                            "link_clicks: 0, results: 0, result_category: 'lead'}])")
+        self.assertEqual(result["spend"], 10)
+        for key in ("cpm", "cpc", "linkCtr", "cpl"):
+            self.assertIsNone(result[key], key)
+
+    def test_scope_uses_exact_week_and_excludes_cross_month_exports_from_month(self):
+        exports = [
+            {"id": "jul", "start": "2026-07-20", "end": "2026-07-26", "month": "2026-07",
+             "month_eligible": True, "campaigns": [{"spend": 10}, {"spend": 0}]},
+            {"id": "bridge", "start": "2026-07-30", "end": "2026-08-02", "month": None,
+             "month_eligible": False, "campaigns": [{"spend": 5}]},
+        ]
+        data = json.dumps(exports)
+        self.assertEqual(self.model(f"marketingScope({data}, {{mode:'month', period:'2026-07', hideZero:true}})"),
+                         {"exports": [exports[0]], "campaigns": exports[0]["campaigns"],
+                          "filteredCampaigns": [{"spend": 10}]})
+        self.assertEqual(self.model(f"marketingScope({data}, {{mode:'week', period:'bridge', hideZero:false}})"),
+                         {"exports": [exports[1]], "campaigns": [{"spend": 5}],
+                          "filteredCampaigns": [{"spend": 5}]})
+        self.assertEqual(self.model(f"marketingPeriods({data}, 'month')"), ["2026-07"])
+        self.assertEqual(self.model(f"marketingPeriods({data}, 'week')"), ["jul", "bridge"])
+
+    def test_hide_zero_filters_only_campaign_list_not_metric_inputs(self):
+        exports = [{"id": "week", "start": "2026-07-20", "campaigns": [
+            {"spend": 10, "impressions": 100, "result_category": "lead", "results": 2},
+            {"spend": 0, "impressions": 100, "result_category": "lead", "results": 3},
+        ]}]
+        scoped = self.model("(() => { const s = marketingScope(" + json.dumps(exports) +
+                            ", {mode:'week', period:'week', hideZero:true}); "
+                            "return {metrics: aggregateMarketing(s.campaigns, s.exports), "
+                            "shown: s.filteredCampaigns}; })()")
+        self.assertEqual(scoped["metrics"]["impressions"], 200)
+        self.assertEqual(scoped["metrics"]["leads"], 5)
+        self.assertEqual(len(scoped["shown"]), 1)
+
+    def test_month_coverage_unions_days_and_marks_partial_july_august(self):
+        exports = [
+            {"start": "2026-07-20", "end": "2026-07-26", "month": "2026-07", "month_eligible": True},
+            {"start": "2026-08-17", "end": "2026-08-23", "month": "2026-08", "month_eligible": True},
+            {"start": "2026-07-24", "end": "2026-07-28", "month": "2026-07", "month_eligible": True},
+        ]
+        data = json.dumps(exports)
+        self.assertEqual(self.model(f"monthCoverage({data}, '2026-07')"),
+                         {"complete": False, "coveredDays": 9, "totalDays": 31})
+        self.assertEqual(self.model(f"monthCoverage({data}, '2026-08')"),
+                         {"complete": False, "coveredDays": 7, "totalDays": 31})
+        full = [{"start": "2026-02-01", "end": "2026-02-14", "month": "2026-02", "month_eligible": True},
+                {"start": "2026-02-14", "end": "2026-02-28", "month": "2026-02", "month_eligible": True}]
+        self.assertEqual(self.model(f"monthCoverage({json.dumps(full)}, '2026-02')"),
+                         {"complete": True, "coveredDays": 28, "totalDays": 28})
+
+    def test_comparison_uses_previous_week_and_only_supported_metric_deltas(self):
+        exports = [
+            {"id": "first", "start": "2026-07-20", "end": "2026-07-26", "month": "2026-07",
+             "month_eligible": True, "campaigns": [
+                 {"spend": 10, "impressions": 1000, "link_clicks": 100, "results": 20, "result_category": "lead"},
+                 {"spend": 5, "impressions": 500, "link_clicks": 50, "results": 300, "result_category": "profile_visit"}]},
+            {"id": "second", "start": "2026-08-17", "end": "2026-08-23", "month": "2026-08",
+             "month_eligible": True, "campaigns": [
+                 {"spend": 20, "impressions": 2000, "link_clicks": 200, "results": 40, "result_category": "lead"},
+                 {"spend": 10, "impressions": 1000, "link_clicks": 100, "results": 600, "result_category": "profile_visit"}]},
+        ]
+        data = json.dumps(exports)
+        self.assertEqual(self.model(f"marketingComparison({data}, {{mode:'week', period:'first', hideZero:false}})"),
+                         {key: None for key in ("spend", "impressions", "cpm", "linkClicks", "cpc",
+                                                 "linkCtr", "leads", "leadSpend", "cpl")})
+        self.assertEqual(self.model(f"marketingComparison({data}, {{mode:'week', period:'second', hideZero:false}})"),
+                         {key: 100 for key in ("spend", "impressions", "leads", "leadSpend", "linkClicks")}
+                         | {key: 0 for key in ("cpm", "cpc", "linkCtr", "cpl")})
+
+    def test_comparison_returns_null_for_zero_previous_denominator(self):
+        exports = [
+            {"id": "first", "start": "2026-07-20", "end": "2026-07-26", "campaigns": [
+                {"spend": 0, "impressions": 0, "link_clicks": 0, "results": 0, "result_category": "lead"}]},
+            {"id": "second", "start": "2026-08-17", "end": "2026-08-23", "campaigns": [
+                {"spend": 10, "impressions": 100, "link_clicks": 10, "results": 2, "result_category": "lead"}]},
+        ]
+        self.assertTrue(all(value is None for value in self.model(
+            f"marketingComparison({json.dumps(exports)}, {{mode:'week', period:'second', hideZero:false}})"
+        ).values()))
+
+
 class DashboardBuildTest(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
