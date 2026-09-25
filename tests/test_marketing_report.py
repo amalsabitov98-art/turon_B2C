@@ -78,10 +78,21 @@ class MarketingReportTest(unittest.TestCase):
             list(cases.items()),
         )
 
-    def test_missing_required_spend_header_names_the_header(self):
+    def test_missing_required_spend_header_names_both_supported_labels(self):
         headers = [header for header in HEADERS if header != "Потраченная сумма (USD)"]
-        with self.assertRaisesRegex(ValueError, r"Потраченная сумма \(USD\)"):
+        with self.assertRaises(ValueError) as error:
             parse_workbook(self.workbook([campaign()], headers))
+        self.assertIn("Потраченная сумма (USD)", str(error.exception))
+        self.assertIn("Сумма затрат (USD)", str(error.exception))
+
+    def test_summa_zatrat_spend_alias_parses(self):
+        headers = ["Сумма затрат (USD)" if header == "Потраченная сумма (USD)" else header
+                   for header in HEADERS]
+        row = campaign("Alias", **{"Потраченная сумма (USD)": "12,75"})
+        row["Сумма затрат (USD)"] = row.pop("Потраченная сумма (USD)")
+        export = parse_workbook(self.workbook([row], headers))
+        self.assertEqual(export["campaigns"][0]["spend"], 12.75)
+        self.assertEqual(export["totals"]["spend"], 12.75)
 
     def test_normalized_headers_numeric_cells_and_optional_meta_fields(self):
         headers = list(reversed(HEADERS))

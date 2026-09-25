@@ -13,9 +13,11 @@ import openpyxl
 
 REQUIRED_HEADERS = (
     "Дата начала отчетности", "Окончание отчетности", "Название кампании",
-    "Результат", "Индикатор результата", "Потраченная сумма (USD)",
+    "Результат", "Индикатор результата",
     "Показы", "Клики по ссылке",
 )
+
+SPEND_HEADERS = ("Потраченная сумма (USD)", "Сумма затрат (USD)")
 
 RESULT_CATEGORIES = {
     "actions:leadgen.other": "lead",
@@ -116,8 +118,14 @@ def parse_workbook(path):
         for header in REQUIRED_HEADERS:
             if normalize_header(header) not in columns:
                 raise ValueError(f"Missing required Meta header: {header}")
+        spend_column = next((columns[normalize_header(header)] for header in SPEND_HEADERS
+                             if normalize_header(header) in columns), None)
+        if spend_column is None:
+            raise ValueError(f"Missing required Meta header: {' / '.join(SPEND_HEADERS)}")
+
         def cell(row, header):
-            index = columns.get(normalize_header(header))
+            index = (spend_column if header == SPEND_HEADERS[0]
+                     else columns.get(normalize_header(header)))
             return row[index] if index is not None and index < len(row) else None
 
         campaigns = []
