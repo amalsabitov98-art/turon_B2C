@@ -85,6 +85,18 @@ class MarketingReportTest(unittest.TestCase):
         self.assertIn("Потраченная сумма (USD)", str(error.exception))
         self.assertIn("Сумма затрат (USD)", str(error.exception))
 
+    def test_missing_headers_report_all_logical_fields_including_spend_aliases(self):
+        missing = {"Название кампании", "Показы", "Потраченная сумма (USD)"}
+        headers = [header for header in HEADERS if header not in missing]
+
+        with self.assertRaises(ValueError) as error:
+            parse_workbook(self.workbook([campaign()], headers))
+
+        message = str(error.exception)
+        for header in (*missing, "Сумма затрат (USD)"):
+            with self.subTest(header=header):
+                self.assertIn(header, message)
+
     def test_summa_zatrat_spend_alias_parses(self):
         headers = ["Сумма затрат (USD)" if header == "Потраченная сумма (USD)" else header
                    for header in HEADERS]
@@ -183,6 +195,35 @@ class MarketingReportTest(unittest.TestCase):
         self.assertEqual(report["exports"][0]["campaigns"][0]["name"], "A")
         self.assertTrue(any("conflict" in issue.lower() for issue in report["issues"]))
 
+    def test_partial_overlap_keeps_first_export_and_names_both_ranges(self):
+        first = self.workbook([campaign("First")], name="first.xlsx")
+        overlapping = campaign("Overlap", **{
+            "Дата начала отчетности": "2026-07-26",
+            "Окончание отчетности": "2026-08-01",
+        })
+        second = self.workbook([overlapping], name="overlap.xlsx")
+
+        report = marketing.parse_workbooks([first, second])
+
+        self.assertEqual([item["source"] for item in report["exports"]], ["first.xlsx"])
+        self.assertTrue(any("2026-07-20_2026-07-26" in issue
+                            and "2026-07-26_2026-08-01" in issue
+                            and "overlap" in issue.lower() for issue in report["issues"]))
+
+    def test_adjacent_ranges_are_both_accepted(self):
+        first = self.workbook([campaign("First")], name="first.xlsx")
+        adjacent = campaign("Adjacent", **{
+            "Дата начала отчетности": "2026-07-27",
+            "Окончание отчетности": "2026-08-02",
+        })
+        second = self.workbook([adjacent], name="adjacent.xlsx")
+
+        report = marketing.parse_workbooks([first, second])
+
+        self.assertEqual([item["source"] for item in report["exports"]],
+                         ["first.xlsx", "adjacent.xlsx"])
+        self.assertFalse(any("overlap" in issue.lower() for issue in report["issues"]))
+
     def test_cross_month_export_remains_for_weekly_view(self):
         row = campaign("Bridge", **{
             "Дата начала отчетности": "2026-07-30",
@@ -269,6 +310,24 @@ class MarketingAggregationTest(unittest.TestCase):
                          {"results": 300, "spend": 5, "campaigns": 1})
         self.assertNotIn("totalResults", result)
         self.assertNotIn("results", result)
+
+    def test_unknown_raw_result_types_have_independent_counts_and_spend(self):
+        rows = [
+            {"spend": 12, "results": 3, "result_category": "other",
+             "result_type_raw": "actions:video_view"},
+            {"spend": 8, "results": 2, "result_category": "other",
+             "result_type_raw": "actions:video_view"},
+            {"spend": 15, "results": 5, "result_category": "other",
+             "result_type_raw": "actions:post_engagement"},
+        ]
+
+        groups = self.model(f"aggregateMarketing({json.dumps(rows)})")["resultCategories"]
+
+        self.assertEqual(groups["other:actions:video_view"],
+                         {"results": 5, "spend": 20, "campaigns": 2})
+        self.assertEqual(groups["other:actions:post_engagement"],
+                         {"results": 5, "spend": 15, "campaigns": 1})
+        self.assertNotIn("other", groups)
 
     def test_reach_requires_a_single_export_level_total(self):
         rows = [{"spend": 3, "reach": 100, "result_category": "lead"},
@@ -419,6 +478,7 @@ const esc = x => String(x == null ? '' : x).replace(/[&<>\"]/g, c =>
   ({{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}}[c]));
 const money = v => v == null ? '—' : '$' + Number(v).toFixed(2);
 const pct = v => v == null ? '—' : Number(v).toFixed(1) + '%';
+const dmy = value => value;
 const nf = new Intl.NumberFormat('ru-RU');
 function seg(el, items, cur, cb) {{
   el.items = items; el.current = cur; el.choose = cb;
@@ -477,6 +537,56 @@ process.stdout.write(JSON.stringify({{state:S, elements}}));
         self.assertIn('Lead', result['marketingCampaigns']['innerHTML'])
         self.assertIn('Call', result['marketingCampaigns']['innerHTML'])
         self.assertNotIn('Zero', result['marketingCampaigns']['innerHTML'])
+
+    def test_unknown_result_types_render_as_separate_cards(self):
+        rows = [
+            {'name': 'Video', 'spend': 12, 'results': 3,
+             'result_category': 'other', 'result_type_raw': 'actions:video_view'},
+            {'name': 'Engagement', 'spend': 20, 'results': 4,
+             'result_category': 'other', 'result_type_raw': 'actions:post_engagement'},
+        ]
+        export = {'id': 'week', 'start': '2026-07-20', 'end': '2026-07-26',
+                  'month': '2026-07', 'month_eligible': True, 'campaigns': rows}
+
+        html = self.marketing_ui({'exports': [export], 'issues': []})['elements']['marketingResults']['innerHTML']
+        cards = html.split('<div class="card kpi">')[1:]
+
+        self.assertEqual(len(cards), 2)
+        self.assertTrue(any('actions:video_view' in card and '>3</div>' in card
+                            and '$12,00' in card and '$4,00' in card for card in cards))
+        self.assertTrue(any('actions:post_engagement' in card and '>4</div>' in card
+                            and '$20,00' in card and '$5,00' in card for card in cards))
+
+    def test_non_lead_results_show_count_spend_and_cost_or_dash(self):
+        rows = [
+            {'name': 'Call', 'spend': 15, 'results': 3,
+             'result_category': 'call', 'result_type_raw': 'actions:click_to_call_native_call_placed'},
+            {'name': 'Visit', 'spend': 6, 'results': 0,
+             'result_category': 'profile_visit', 'result_type_raw': 'profile_visit_view'},
+            {'name': 'Click', 'spend': 4, 'results': None,
+             'result_category': 'link_click', 'result_type_raw': 'actions:link_click'},
+        ]
+        export = {'id': 'week', 'start': '2026-07-20', 'end': '2026-07-26',
+                  'month': '2026-07', 'month_eligible': True, 'campaigns': rows}
+
+        html = self.marketing_ui({'exports': [export], 'issues': []})['elements']['marketingResults']['innerHTML']
+        cards = html.split('<div class="card kpi">')[1:]
+        by_label = {card.split('<div class="k-l">', 1)[1].split('</div>', 1)[0]: card
+                    for card in cards}
+
+        self.assertIn('>3</div>', by_label['Звонки'])
+        self.assertIn('$15,00', by_label['Звонки'])
+        self.assertIn('Стоимость результата: $5,00', by_label['Звонки'])
+        self.assertIn('>0</div>', by_label['Посещения профиля'])
+        self.assertIn('$6,00', by_label['Посещения профиля'])
+        self.assertIn('Стоимость результата: —', by_label['Посещения профиля'])
+        self.assertIn('Стоимость результата: —', by_label['Клики по ссылке'])
+
+    def test_comparison_context_is_visible_next_to_marketing_kpis(self):
+        section = self.template.split('<section id="marketingView"', 1)[1].split('</section>', 1)[0]
+        note = section.index('Состав и цели кампаний могут отличаться между периодами')
+        self.assertLess(section.index('id="marketingCoverage"'), note)
+        self.assertLess(note, section.index('id="marketingKpis"'))
 
 
 class DashboardBuildTest(unittest.TestCase):

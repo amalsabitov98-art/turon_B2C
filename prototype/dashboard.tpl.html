@@ -380,6 +380,7 @@
       <label class="toggle"><input type="checkbox" id="marketingHideZero" checked>Скрыть без расходов</label>
     </div>
     <div id="marketingCoverage" role="status"></div>
+    <div class="flag warn" role="note"><span class="fi">Сравнение</span><div>Состав и цели кампаний могут отличаться между периодами. Учитывайте это при сравнении изменений показателей.</div></div>
     <div class="grid g4" id="marketingKpis"></div>
     <div id="marketingResults"></div>
     <div id="marketingCampaigns"></div>
@@ -565,11 +566,12 @@ function aggregateMarketing(campaigns, exports = []) {
     a.impressions += row.impressions || 0;
     a.linkClicks += row.link_clicks || 0;
     const category = row.result_category || 'other';
-    const group = a.resultCategories[category] || { results: 0, spend: 0, campaigns: 0 };
+    const key = category === 'other' ? `other:${row.result_type_raw || ''}` : category;
+    const group = a.resultCategories[key] || { results: 0, spend: 0, campaigns: 0 };
     group.results += row.results || 0;
     group.spend += spend;
     group.campaigns++;
-    a.resultCategories[category] = group;
+    a.resultCategories[key] = group;
   }
   const lead = a.resultCategories.lead;
   if (lead) { a.leads = lead.results; a.leadSpend = lead.spend; }
@@ -758,11 +760,21 @@ function renderMarketing() {
     <div class="k-v">${nf.format(total.leads)}</div>
     <div class="k-s">Расходы кампаний с лидами: ${esc(marketingMoney(total.leadSpend))} · CPL: ${esc(marketingMoney(total.cpl))}</div>
     ${marketingDelta(comparison.leads)}</div>` : '';
-  const otherBlocks = ['call', 'link_click', 'landing_page_view', 'profile_visit', 'other']
+  const otherKeys = ['call', 'link_click', 'landing_page_view', 'profile_visit']
+    .concat(Object.keys(categories).filter(key => key.startsWith('other:')).sort());
+  const otherBlocks = otherKeys
     .filter(key => categories[key] && (categories[key].campaigns || categories[key].results))
-    .map(key => `<div class="card kpi"><div class="k-l">${MARKETING_CATEGORIES[key]}</div>
+    .map(key => {
+      const raw = key.startsWith('other:') ? key.slice('other:'.length) : null;
+      const label = raw === null ? MARKETING_CATEGORIES[key]
+        : `Другой результат: ${raw ? raw.replace(/^actions:/, '').replace(/[_:.]+/g, ' ').trim() : 'тип не указан'}`;
+      const cost = categories[key].results > 0
+        ? categories[key].spend / categories[key].results : null;
+      return `<div class="card kpi"><div class="k-l">${esc(label)}</div>
+      ${raw ? `<div class="alias">${esc(raw)}</div>` : ''}
       <div class="k-v">${nf.format(categories[key].results)}</div>
-      <div class="k-s">${categories[key].campaigns} кампаний · ${esc(marketingMoney(categories[key].spend))}</div></div>`).join('');
+      <div class="k-s">${categories[key].campaigns} кампаний · ${esc(marketingMoney(categories[key].spend))} · Стоимость результата: ${esc(marketingMoney(cost))}</div></div>`;
+    }).join('');
   results.innerHTML = `<h2 class="sec">Результаты по типам</h2><div class="grid g4">${leadBlock}${otherBlocks}</div>`;
 
   const sort = state.sort || { key: 'spend', dir: -1 };

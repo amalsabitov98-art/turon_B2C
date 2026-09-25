@@ -115,13 +115,14 @@ def parse_workbook(path):
         rows = sheet.iter_rows(values_only=True)
         headers = next(rows)
         columns = {normalize_header(value): index for index, value in enumerate(headers)}
-        for header in REQUIRED_HEADERS:
-            if normalize_header(header) not in columns:
-                raise ValueError(f"Missing required Meta header: {header}")
+        missing = [header for header in REQUIRED_HEADERS
+                   if normalize_header(header) not in columns]
         spend_column = next((columns[normalize_header(header)] for header in SPEND_HEADERS
                              if normalize_header(header) in columns), None)
         if spend_column is None:
-            raise ValueError(f"Missing required Meta header: {' / '.join(SPEND_HEADERS)}")
+            missing.append(" / ".join(SPEND_HEADERS))
+        if missing:
+            raise ValueError(f"Missing required Meta headers: {', '.join(missing)}")
 
         def cell(row, header):
             index = (spend_column if header == SPEND_HEADERS[0]
@@ -211,6 +212,13 @@ def parse_workbooks(paths: list[Path]) -> dict:
                 issues.append(f"Duplicate Meta export for {export['id']}: {path.name} matches {existing['source']}")
             else:
                 issues.append(f"Conflict for Meta period {export['id']}: {path.name} differs from {existing['source']}; keeping first")
+            continue
+        overlapping = next((accepted for accepted in exports
+                            if export["start"] <= accepted["end"]
+                            and accepted["start"] <= export["end"]), None)
+        if overlapping:
+            issues.append(f"Overlapping Meta periods {export['id']} ({path.name}) and "
+                          f"{overlapping['id']} ({overlapping['source']}); keeping first")
             continue
         seen[export["id"]] = export
         exports.append(export)
